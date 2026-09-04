@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block body_class %}page-home{% endblock %}
+{% block content %}
+<section class="hero wrap">
+  <div class="hero__copy">
+    <p class="eyebrow reveal">Small-batch resort wear · Made in India</p>
+    <h1 class="display display--xl reveal reveal--1">Out of office.<br>Into the sea.</h1>
+    <p class="lede reveal reveal--2">Kaftans, cover-ups, dresses and sets for the trip you're already planning. Comfortable. Classy. A little mischievous. Cut in batches of ten to twenty, so nobody at the resort is wearing yours.</p>
+    <div class="hero__cta reveal reveal--3">
+      <a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--lg">Shop the drop</a>
+      <a href="{% url 'catalog:shop_category' 'kaftans' %}" class="btn btn--ghost btn--lg">Start with a kaftan</a>
+    </div>
+    <p class="hero__note reveal reveal--3">₹1,000–5,000 · Free shipping over ₹1,999 · {{ product_count }} styles live right now</p>
+  </div>
+  <div class="hero__art reveal reveal--2">
+    <img src="{% static 'img/editorial/hero.svg' %}" alt="A striped kaftan in front of a cream sun over blue waves" width="1000" height="1200" fetchpriority="high">
+    <span class="hero__stamp" aria-hidden="true"><span>BATCH ✦ OF ✦ 14 ✦ </span></span>
+  </div>
+</section>
+
+<section class="cats">
+  <div class="wrap section-head">
+    <h2 class="display display--md">Pick your poison</h2>
+    <a href="{% url 'catalog:shop' %}" class="link-arrow">Everything</a>
+  </div>
+  <div class="cat-rail" role="list">
+    {% for c in categories %}
+    <a href="{{ c.url }}" class="cat-tile" role="listitem">
+      <img src="{{ c.image_url }}" alt="" width="800" height="1000" loading="lazy">
+      <span class="cat-tile__name">{{ c.name }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="section-head">
+    <h2 class="display display--md">Fresh off the cutting table</h2>
+    <a href="{% url 'catalog:shop' %}" class="link-arrow">Shop all</a>
+  </div>
+  <div class="grid grid--products">
+    {% for product in featured %}{% include "partials/product_card.html" with loading="eager" %}{% endfor %}
+  </div>
+</section>
+
+<section class="manifesto">
+  <div class="manifesto__art">
+    <img src="{% static 'img/editorial/lifestyle-1.svg' %}" alt="A sun over waves with palms and a lounger" width="1600" height="900" loading="lazy">
+  </div>
+  <div class="manifesto__copy">
+    <p class="eyebrow eyebrow--cream">Why we exist</p>
+    <h2 class="display display--lg">Resort wear that doesn't need a resort.</h2>
+    <p>We started Bay'n Bae because the good kaftans were all ₹9,000 and the cheap ones went see-through in one wash. So we cut our own. Real cotton from Erode and Bhiwandi, screen-printed by hand, sewn in tiny runs in Bengaluru, and priced so a student can buy one without a bank loan.</p>
+    <p>Wear them to Goa. Wear them to Gokarna. Wear them to your 9am and tell everyone you're going somewhere later.</p>
+    <a href="{% url 'catalog:about' %}" class="btn btn--cream">The whole story</a>
+  </div>
+</section>
+
+{% if kaftans %}
+<section class="wrap section">
+  <div class="section-head section-head--stack">
+    <h2 class="display display--md">The kaftan edit</h2>
+    <p class="section-sub">One size. Zero effort. The thing you'll reach for at 7am and 11pm, and the reason we started this label.</p>
+  </div>
+  <div class="grid grid--three">
+    {% for product in kaftans %}{% include "partials/product_card.html" %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="wrap section">
+  <div class="section-head">
+    <h2 class="display display--md">Also new in</h2>
+    <a href="{% url 'catalog:shop' %}?sort=new" class="link-arrow">See everything</a>
+  </div>
+  <div class="grid grid--products">
+    {% for product in new_in|slice:":8" %}{% include "partials/product_card.html" %}{% endfor %}
+  </div>
+</section>
+
+<section class="promises">
+  <div class="wrap grid grid--three promises__grid">
+    <div class="promise">
+      <span class="promise__num">01</span>
+      <h3 class="display display--sm">Ten to twenty of each</h3>
+      <p>Every style is a small batch. When your size goes, it's gone. We'd rather sell out than mark down.</p>
+    </div>
+    <div class="promise">
+      <span class="promise__num">02</span>
+      <h3 class="display display--sm">Fabric you can read about</h3>
+      <p>Every page tells you the cloth, the weight, and whether it's sheer. No surprises at the pool.</p>
+    </div>
+    <div class="promise">
+      <span class="promise__num">03</span>
+      <h3 class="display display--sm">Prepaid, packed, gone</h3>
+      <p>UPI, cards, net banking. Dispatched from Bengaluru in {{ store.dispatch_days }}. Free shipping over ₹1,999.</p>
+    </div>
+  </div>
+</section>
+
+<section class="ig">
+  <div class="wrap section-head">
+    <h2 class="display display--md">@{{ store.instagram }}</h2>
+    <a href="https://instagram.com/{{ store.instagram }}" class="link-arrow" rel="noopener">Follow along</a>
+  </div>
+  <div class="ig__grid">
+    {% for i in "123456" %}
+    <a href="https://instagram.com/{{ store.instagram }}" rel="noopener" class="ig__tile" aria-label="Bay'n Bae on Instagram">
+      <img src="{% static 'img/editorial/ig-' %}{{ i }}.svg" alt="" width="600" height="600" loading="lazy">
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="wrap section faq-teaser">
+  <div class="section-head section-head--stack">
+    <h2 class="display display--md">Things people DM us</h2>
+  </div>
+  <div class="faq-list">
+    <details class="faq">
+      <summary>Do I need an account?</summary>
+      <p>No. Bag, address, pay, done. Your order number is on the confirmation page and you can look it up any time with your email or phone.</p>
+    </details>
+    <details class="faq">
+      <summary>Is there cash on delivery?</summary>
+      <p>No. Everything is prepaid through Razorpay. It's how we keep the prices where they are.</p>
+    </details>
+    <details class="faq">
+      <summary>Can I exchange a size?</summary>
+      <p>Yes, within 7 days of delivery, unworn with tags, as long as we still have the size. We arrange the pickup.</p>
+    </details>
+  </div>
+  <a href="{% url 'support:faq' %}" class="link-arrow">All the answers</a>
+</section>
+{% endblock %}

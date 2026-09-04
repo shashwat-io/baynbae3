@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Something broke — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head empty">
+  <p class="eyebrow">500</p>
+  <h1 class="display display--xl">We tripped on a cable.</h1>
+  <p class="lede">Something on our side went wrong. Nothing was charged. Give it a minute and try again, or <a href="/contact/">tell us</a> if it keeps happening.</p>
+  <a href="/" class="btn btn--primary btn--lg">Home</a>
+</section>
+{% endblock %}

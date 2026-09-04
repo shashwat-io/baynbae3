@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Payment didn't go through — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head">
+  <p class="eyebrow">Order {{ order.order_number }}</p>
+  <h1 class="display display--xl">That didn't go through.</h1>
+  <p class="lede">Nothing was charged. Banks do this sometimes; UPI does it more. Your order is still held, so try again or go back to your bag.</p>
+  <div class="hero__cta">
+    <a href="{% url 'orders:pay' order.token %}" class="btn btn--primary btn--lg">Try paying again</a>
+    <a href="{% url 'orders:bag' %}" class="btn btn--ghost btn--lg">Back to bag</a>
+  </div>
+  <p class="summary__fine">If money left your account, it comes back within 5–7 working days automatically. <a href="{% url 'support:contact' %}?order={{ order.order_number }}">Tell us</a> and we'll chase it.</p>
+</section>
+{% endblock %}

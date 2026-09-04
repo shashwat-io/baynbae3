@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load humanize static %}
+{% block title %}{{ product.name }} — {{ store.name }}{% endblock %}
+{% block meta_description %}{{ product.tagline }} {{ product.fabric }}{% endblock %}
+{% block og_title %}{{ product.name }} · ₹{{ product.price_inr|intcomma }}{% endblock %}
+{% block og_description %}{{ product.tagline }}{% endblock %}
+{% block og_image %}{{ site_url }}{{ product.primary_image.url }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block head %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Product","name":"{{ product.name|escapejs }}","image":"{{ site_url }}{{ product.primary_image.url }}","description":"{{ product.tagline|escapejs }}","brand":{"@type":"Brand","name":"Bay'n Bae"},"offers":{"@type":"Offer","priceCurrency":"INR","price":"{{ product.price_inr }}","availability":"https://schema.org/{% if product.in_stock %}InStock{% else %}OutOfStock{% endif %}","url":"{{ site_url }}{{ product.get_absolute_url }}"}}
+</script>
+{% endblock %}
+{% block content %}
+<article class="pdp wrap">
+  <div class="pdp__gallery">
+    <div class="gallery" id="gallery">
+      {% for img in images %}
+      <figure class="gallery__slide" id="slide-{{ forloop.counter }}">
+        <img src="{{ img.url }}" alt="{{ img.alt }}" width="800" height="1000" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+      </figure>
+      {% endfor %}
+    </div>
+    <div class="gallery__dots" aria-hidden="true">
+      {% for img in images %}<a href="#slide-{{ forloop.counter }}"></a>{% endfor %}
+    </div>
+  </div>
+
+  <div class="pdp__info">
+    <p class="eyebrow"><a href="{% url 'catalog:shop' %}">Shop</a> / <a href="{{ product.category_obj.url }}">{{ product.category_obj.name }}</a></p>
+    <h1 class="display display--lg pdp__name">{{ product.name }}</h1>
+    <p class="pdp__tagline">{{ product.tagline }}</p>
+    <p class="pdp__price">₹{{ product.price_inr|intcomma }} <span class="pdp__tax">incl. taxes</span></p>
+
+    <form method="post" action="{% url 'orders:bag_add' %}" class="buy">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ product.get_absolute_url }}">
+      <fieldset class="sizes">
+        <legend class="sizes__legend">
+          <span>{% if product.is_one_size %}Size{% else %}Pick a size{% endif %}</span>
+          <a href="{% url 'catalog:size_guide' %}" class="sizes__guide">Size guide</a>
+        </legend>
+        <div class="sizes__row">
+          {% for v in variants %}
+          <label class="size{% if not v.is_available %} is-out{% endif %}">
+            <input type="radio" name="variant" value="{{ v.pk }}" aria-label="{{ v.size_label }}" {% if not v.is_available %}disabled{% elif selected_size == v.size or available|length == 1 %}checked{% endif %} required>
+            <span>{{ v.size_label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% if product.is_low_stock %}
+        <p class="sizes__note">
+          {% for v in available %}{% if v.stock <= 2 %}Only {{ v.stock }} left in {{ v.size_label }}.{% endif %} {% endfor %}
+          {% if product.is_one_size %}{{ product.total_stock }} left in this batch.{% endif %}
+        </p>
+        {% endif %}
+      </fieldset>
+      {% if product.in_stock %}
+      <button class="btn btn--primary btn--lg btn--block" type="submit">Add to bag — ₹{{ product.price_inr|intcomma }}</button>
+      {% else %}
+      <button class="btn btn--lg btn--block" type="button" disabled>Sold out, sorry</button>
+      <p class="pdp__soldout">This batch is gone. Message us on <a href="{% url 'support:contact' %}">Contact</a> if you want to be first for the next run.</p>
+      {% endif %}
+    </form>
+
+    <ul class="pdp__facts">
+      <li><strong>{{ product.print_name }}</strong> · {{ product.colourway }}</li>
+      <li>One of <strong>{{ product.batch_size }}</strong> pieces in this batch</li>
+      <li>Ships from Bengaluru in {{ store.dispatch_days }}{% if product.price_inr >= store.free_shipping_over_inr %}, shipping on us{% endif %}</li>
+    </ul>
+
+    <div class="pdp__copy">
+      {% for p in product.description_paragraphs %}<p>{{ p }}</p>{% endfor %}
+    </div>
+
+    <details class="acc" open>
+      <summary>Fabric &amp; fit</summary>
+      <p>{{ product.fabric }}</p>
+      {% if product.fit_note %}<p>{{ product.fit_note }}</p>{% endif %}
+      {% if product.model_note %}<p class="muted">{{ product.model_note }}</p>{% endif %}
+    </details>
+    <details class="acc">
+      <summary>Care</summary>
+      <p>{{ product.care }}</p>
+    </details>
+    <details class="acc">
+      <summary>Shipping &amp; exchanges</summary>
+      <p>Prepaid only. Free shipping over ₹{{ store.free_shipping_over_inr|intcomma }}, ₹{{ store.shipping_flat_inr }} otherwise. Dispatch in {{ store.dispatch_days }}, delivery in 2–7 days after that.</p>
+      <p>Size exchanges within 7 days of delivery, unworn with tags, subject to stock. <a href="{% url 'support:shipping_returns' %}">Full policy</a>.</p>
+    </details>
+  </div>
+</article>
+
+{% if related %}
+<section class="wrap section">
+  <div class="section-head">
+    <h2 class="display display--md">Goes with</h2>
+    <a href="{{ product.category_obj.url }}" class="link-arrow">More {{ product.category_obj.name|lower }}</a>
+  </div>
+  <div class="grid grid--products">
+    {% for product in related %}{% include "partials/product_card.html" %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

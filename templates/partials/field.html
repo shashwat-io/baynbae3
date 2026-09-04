@@ -1,0 +1,11 @@
+<div class="field{% if f.errors %} has-error{% endif %}">
+  <label for="{{ f.id_for_label }}">{{ f.label }}{% if not f.field.required %} <span class="muted">(optional)</span>{% endif %}</label>
+  {% if f.field.widget.input_type == "select" %}
+    {{ f }}
+  {% else %}
+    <input type="{{ type|default:'text' }}" name="{{ f.html_name }}" id="{{ f.id_for_label }}" value="{{ f.value|default_if_none:'' }}"
+      {% if f.field.required %}required{% endif %} {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %} {% if inputmode %}inputmode="{{ inputmode }}"{% endif %}
+      {% if f.field.max_length %}maxlength="{{ f.field.max_length }}"{% endif %}>
+  {% endif %}
+  {% if f.errors %}<p class="field__error">{{ f.errors|join:" " }}</p>{% elif f.help_text %}<p class="field__help">{{ f.help_text }}</p>{% endif %}
+</div>

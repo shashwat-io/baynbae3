@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}FAQ — {{ store.name }}{% endblock %}
+{% block meta_description %}Shipping times, exchanges, sizing and payment questions for Bay'n Bae.{% endblock %}
+{% block content %}
+<section class="wrap page-head">
+  <p class="eyebrow">Help</p>
+  <h1 class="display display--xl">Things people DM us.</h1>
+  <p class="lede">The honest answers. If yours isn't here, <a href="{% url 'support:contact' %}">write to us</a>.</p>
+</section>
+<section class="wrap faq-groups">
+  {% for group in faq %}
+  <div class="faq-group">
+    <h2 class="display display--md">{{ group.group }}</h2>
+    <div class="faq-list">
+      {% for q, a in group.items %}
+      <details class="faq"><summary>{{ q }}</summary><p>{{ a }}</p></details>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endblock %}

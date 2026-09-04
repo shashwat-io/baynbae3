@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Checkout — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head page-head--tight">
+  <p class="eyebrow"><a href="{% url 'orders:bag' %}">Bag</a> / Checkout / Pay</p>
+  <h1 class="display display--xl">Where's it going?</h1>
+</section>
+<section class="wrap checkout">
+  <form method="post" class="checkout__form" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+    <fieldset class="fields">
+      <legend class="display display--sm">You</legend>
+      {% include "partials/field.html" with f=form.customer_name autocomplete="name" %}
+      <div class="fields__row">
+        {% include "partials/field.html" with f=form.email type="email" autocomplete="email" %}
+        {% include "partials/field.html" with f=form.phone type="tel" autocomplete="tel" inputmode="numeric" %}
+      </div>
+    </fieldset>
+    <fieldset class="fields">
+      <legend class="display display--sm">Address</legend>
+      {% include "partials/field.html" with f=form.address1 autocomplete="address-line1" %}
+      {% include "partials/field.html" with f=form.address2 autocomplete="address-line2" %}
+      <div class="fields__row">
+        {% include "partials/field.html" with f=form.city autocomplete="address-level2" %}
+        {% include "partials/field.html" with f=form.pincode inputmode="numeric" autocomplete="postal-code" %}
+      </div>
+      {% include "partials/field.html" with f=form.state autocomplete="address-level1" %}
+      {% include "partials/field.html" with f=form.note %}
+    </fieldset>
+    <button class="btn btn--primary btn--lg btn--block" type="submit">Continue to payment — ₹{{ bag.total_inr|intcomma }}</button>
+    <p class="summary__fine">Next step is Razorpay's secure page. We never see your card or UPI details.</p>
+  </form>
+  <aside class="summary summary--checkout">
+    <h2 class="display display--sm">{{ lines|length }} item{{ lines|length|pluralize }}</h2>
+    <ul class="mini-lines">
+      {% for line in lines %}
+      <li>
+        {% with img=line.product.primary_image %}{% if img %}<img src="{{ img.url }}" alt="" width="80" height="100">{% endif %}{% endwith %}
+        <span><strong>{{ line.product.name }}</strong><br><small>{{ line.variant.size_label }} × {{ line.quantity }}</small></span>
+        <span>₹{{ line.line_total_inr|intcomma }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <dl class="totals">
+      <div><dt>Subtotal</dt><dd>₹{{ bag.subtotal_inr|intcomma }}</dd></div>
+      <div><dt>Shipping</dt><dd>{% if bag.shipping_inr %}₹{{ bag.shipping_inr }}{% else %}Free{% endif %}</dd></div>
+      <div class="totals__total"><dt>Total</dt><dd>₹{{ bag.total_inr|intcomma }}</dd></div>
+    </dl>
+    <a href="{% url 'orders:bag' %}" class="link-arrow">Edit bag</a>
+  </aside>
+</section>
+{% endblock %}

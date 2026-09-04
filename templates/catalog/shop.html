@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{% if category %}{{ category.name }}{% else %}Shop all{% endif %} — {{ store.name }}{% endblock %}
+{% block meta_description %}{% if category %}{{ category.blurb }}{% else %}Every kaftan, cover-up, dress, co-ord and shorts set we have live right now. Small batches, ₹1,000–5,000.{% endif %}{% endblock %}
+{% block content %}
+<section class="wrap shop-head">
+  <p class="eyebrow">{% if category %}<a href="{% url 'catalog:shop' %}">Shop</a> / {{ category.name }}{% else %}Everything we have live{% endif %}</p>
+  <h1 class="display display--lg">{% if category %}{{ category.name }}{% else %}Shop all{% endif %}</h1>
+  <p class="lede">{% if category %}{{ category.blurb }}{% else %}{{ products|length }} style{{ products|length|pluralize }}, all cut in batches of ten to twenty. If your size is here, it's here now.{% endif %}</p>
+</section>
+
+<div class="wrap filters">
+  <div class="chips" role="list">
+    <a href="{% url 'catalog:shop' %}{% if sort != 'new' %}?sort={{ sort }}{% endif %}" class="chip{% if not category %} is-active{% endif %}" role="listitem">All</a>
+    {% for c in categories %}
+    <a href="{{ c.url }}{% if sort != 'new' %}?sort={{ sort }}{% endif %}" class="chip{% if category.slug == c.slug %} is-active{% endif %}" role="listitem">{{ c.name }}</a>
+    {% endfor %}
+  </div>
+  <form method="get" class="filter-form">
+    <label class="select">
+      <span class="visually-hidden">Size</span>
+      <select name="size">
+        <option value="">Any size</option>
+        {% for s in size_options %}<option value="{{ s }}"{% if s == size_filter %} selected{% endif %}>{% if s == 'FREE' %}One size{% else %}{{ s }}{% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="select">
+      <span class="visually-hidden">Sort</span>
+      <select name="sort">
+        {% for k, label in sorts %}<option value="{{ k }}"{% if k == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn btn--small">Apply</button>
+  </form>
+</div>
+
+<section class="wrap section section--tight">
+  {% if products %}
+  <div class="grid grid--products">
+    {% for product in products %}{% include "partials/product_card.html" with loading=forloop.counter0|yesno:"lazy,eager" %}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <h2 class="display display--md">Nothing here right now.</h2>
+    <p>{% if size_filter %}Nothing in that size at the moment. Try another, or {% endif %}the next batch is on the cutting table. Follow <a href="https://instagram.com/{{ store.instagram }}">@{{ store.instagram }}</a> to hear when it drops.</p>
+    <a href="{% url 'catalog:shop' %}" class="btn btn--primary">Show everything</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

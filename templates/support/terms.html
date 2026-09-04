@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Terms — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head">
+  <p class="eyebrow">Policy</p>
+  <h1 class="display display--xl">Terms</h1>
+  <p class="lede">The bits a lawyer made us write, translated back into English.</p>
+</section>
+<section class="wrap prose prose--narrow">
+  <h2 class="display display--md">The deal</h2>
+  <p>You place an order and pay; we send you the thing. A contract forms when your payment is confirmed and you see the confirmation page with an order number. If we can't fulfil it (it happens: two people buying the last piece within seconds), we'll refund you in full and apologise properly.</p>
+  <h2 class="display display--md">Prices</h2>
+  <p>All prices are in Indian rupees and include GST. Shipping is shown separately at checkout. We may change prices at any time, but never on an order you've already paid for.</p>
+  <h2 class="display display--md">Colours and prints</h2>
+  <p>Everything is hand-screened, so small variations between pieces are the point, not a defect. Screens vary a little too; our blue is our blue, but it's a fabric, not a hex code.</p>
+  <h2 class="display display--md">Exchanges, refunds, and everything else</h2>
+  <p>Covered in <a href="{% url 'support:shipping_returns' %}">Shipping &amp; exchanges</a>, which is part of these terms.</p>
+  <h2 class="display display--md">Us</h2>
+  <p>Bay'n Bae is a small label operating from Bengaluru, Karnataka, India. These terms are governed by Indian law and any disputes go to the courts of Bengaluru, though we'd much rather sort it out over email first: <a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a>.</p>
+</section>
+{% endblock %}

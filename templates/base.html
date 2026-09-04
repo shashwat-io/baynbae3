@@ -1,0 +1,121 @@
+{% load static %}<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ store.name }} — small-batch resort wear{% endblock %}</title>
+<meta name="description" content="{% block meta_description %}Kaftans, cover-ups, resort dresses and sets, made in small batches in India. Comfortable, classy, a little mischievous.{% endblock %}">
+<link rel="canonical" href="{{ site_url }}{{ request.path }}">
+<meta property="og:site_name" content="{{ store.name }}">
+<meta property="og:title" content="{% block og_title %}{{ store.name }} — small-batch resort wear{% endblock %}">
+<meta property="og:description" content="{% block og_description %}Kaftans, cover-ups, resort dresses and sets, made in small batches in India.{% endblock %}">
+<meta property="og:image" content="{% block og_image %}{{ site_url }}{% static 'img/social-card.png' %}{% endblock %}">
+<meta property="og:type" content="{% block og_type %}website{% endblock %}">
+<meta name="theme-color" content="#F6F5EA">
+<link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{% static 'img/icon-512.png' %}">
+<link rel="preload" href="{% static 'fonts/koulen-v30-latin-regular.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{% static 'fonts/dm-sans-v17-latin-regular.woff2' %}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{% static 'css/site.css' %}">
+{% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<a class="skip" href="#main">Skip to content</a>
+<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker__track">
+    {% for i in "12" %}
+    <span>Free shipping over ₹1,999</span><span>✦</span>
+    <span>Prepaid only, zero drama</span><span>✦</span>
+    <span>Cut in batches of 10–20</span><span>✦</span>
+    <span>Ships from Bengaluru in {{ store.dispatch_days }}</span><span>✦</span>
+    <span>Exchanges within 7 days</span><span>✦</span>
+    {% endfor %}
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="site-header__bar wrap">
+    <label for="nav-toggle" class="burger" aria-label="Open menu"><span></span><span></span><span></span></label>
+    <a href="{% url 'catalog:home' %}" class="brand" aria-label="{{ store.name }} home">
+      <img src="{% static 'img/logo-wordmark.svg' %}" alt="{{ store.name }}" width="150" height="36">
+    </a>
+    <nav class="nav-desktop" aria-label="Primary">
+      <a href="{% url 'catalog:shop' %}">Shop all</a>
+      {% for c in nav_categories %}<a href="{{ c.url }}"{% if request.resolver_match.kwargs.category == c.slug %} aria-current="page"{% endif %}>{{ c.name }}</a>{% endfor %}
+      <a href="{% url 'catalog:about' %}">About</a>
+    </nav>
+    <div class="header-actions">
+      <a href="{% url 'orders:track' %}" class="header-link">Track</a>
+      <a href="{% url 'orders:bag' %}" class="bag-link" aria-label="Bag, {{ bag_count }} item{{ bag_count|pluralize }}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 13H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <span class="bag-count{% if not bag_count %} is-empty{% endif %}">{{ bag_count }}</span>
+      </a>
+    </div>
+  </div>
+</header>
+  <nav class="nav-panel" aria-label="Menu">
+    <div class="wrap">
+      <a href="{% url 'catalog:shop' %}" class="nav-panel__big">Shop all</a>
+      {% for c in nav_categories %}<a href="{{ c.url }}" class="nav-panel__big">{{ c.name }}</a>{% endfor %}
+      <div class="nav-panel__small">
+        <a href="{% url 'catalog:about' %}">About</a>
+        <a href="{% url 'catalog:size_guide' %}">Size guide</a>
+        <a href="{% url 'support:faq' %}">FAQ</a>
+        <a href="{% url 'orders:track' %}">Track order</a>
+        <a href="{% url 'support:contact' %}">Contact</a>
+        <a href="https://instagram.com/{{ store.instagram }}" rel="noopener">Instagram</a>
+      </div>
+    </div>
+  </nav>
+
+{% if messages %}
+<div class="flashes wrap" role="status">
+  {% for m in messages %}<p class="flash flash--{{ m.tags }}">{{ m }}</p>{% endfor %}
+</div>
+{% endif %}
+
+<main id="main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="{% static 'img/logo-wordmark.svg' %}" alt="{{ store.name }}" width="180" height="44" class="footer-logo">
+        <p class="footer-tag">Resort wear for the ones who never quite left the beach. Cut in small batches in Bengaluru, worn everywhere.</p>
+        <a class="footer-ig" href="https://instagram.com/{{ store.instagram }}" rel="noopener">@{{ store.instagram }} on Instagram →</a>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <h4>Shop</h4>
+          <a href="{% url 'catalog:shop' %}">Everything</a>
+          {% for c in nav_categories %}<a href="{{ c.url }}">{{ c.name }}</a>{% endfor %}
+        </div>
+        <div>
+          <h4>Help</h4>
+          <a href="{% url 'catalog:size_guide' %}">Size guide</a>
+          <a href="{% url 'support:faq' %}">FAQ</a>
+          <a href="{% url 'orders:track' %}">Track an order</a>
+          <a href="{% url 'support:shipping_returns' %}">Shipping &amp; exchanges</a>
+          <a href="{% url 'support:contact' %}">Contact</a>
+        </div>
+        <div>
+          <h4>The label</h4>
+          <a href="{% url 'catalog:about' %}">About Bay'n Bae</a>
+          <a href="{% url 'support:privacy' %}">Privacy</a>
+          <a href="{% url 'support:terms' %}">Terms</a>
+          <a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© {% now "Y" %} {{ store.name }}. Made in India, mostly by the sea.</span>
+      <span class="footer-pay">Prepaid via Razorpay · UPI · Cards · Net banking</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

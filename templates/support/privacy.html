@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Privacy — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head">
+  <p class="eyebrow">Policy</p>
+  <h1 class="display display--xl">Privacy</h1>
+  <p class="lede">We collect what we need to send you a parcel and nothing that we'd be embarrassed to explain.</p>
+</section>
+<section class="wrap prose prose--narrow">
+  <h2 class="display display--md">What we collect</h2>
+  <p>When you order: your name, email, phone number and delivery address. When you write to us: whatever you put in the form. That's the list.</p>
+  <h2 class="display display--md">What we don't</h2>
+  <p>Card numbers, UPI IDs, bank details. Payment happens on Razorpay's page and they send us a reference number, not your details. We don't run accounts, so there's no password to leak. We don't use advertising trackers.</p>
+  <h2 class="display display--md">Cookies</h2>
+  <p>One session cookie, so your bag survives between pages, and one CSRF cookie, so nobody can submit forms pretending to be you. Both are essential and neither identifies you to anyone else.</p>
+  <h2 class="display display--md">Who sees it</h2>
+  <p>Us, Razorpay (payment), and the courier (delivery address and phone). Nobody else, and we don't sell or rent anything.</p>
+  <h2 class="display display--md">How long</h2>
+  <p>Order records are kept for as long as Indian tax law makes us keep them. Support messages are kept until resolved and then for a year in case it comes up again. Ask us to delete your details and we will, unless the law says otherwise.</p>
+  <p>Questions: <a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a>.</p>
+</section>
+{% endblock %}

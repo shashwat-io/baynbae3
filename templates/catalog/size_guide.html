@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Size guide — {{ store.name }}{% endblock %}
+{% block meta_description %}Body measurements for Bay'n Bae sizes XS to XL, plus how our kaftans and cover-ups fit.{% endblock %}
+{% block content %}
+<section class="wrap page-head">
+  <p class="eyebrow">Fit</p>
+  <h1 class="display display--xl">Size guide</h1>
+  <p class="lede">These are body measurements, not garment measurements. Most of our styles are cut relaxed, so if you're between sizes, go down for dresses and co-ords. Kaftans and cover-ups are one size and fit UK 6 to 16.</p>
+</section>
+<section class="wrap prose-grid">
+  <div>
+    <div class="table-scroll">
+      <table class="table">
+        <thead><tr><th>Size</th><th>Bust (in)</th><th>Waist (in)</th><th>Hip (in)</th><th>UK</th></tr></thead>
+        <tbody>
+          {% for row in chart %}<tr><td><strong>{{ row.size }}</strong></td><td>{{ row.bust }}</td><td>{{ row.waist }}</td><td>{{ row.hip }}</td><td>{{ row.uk }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <h2 class="display display--md">How to measure</h2>
+      <p><strong>Bust:</strong> around the fullest part, tape flat, breathing normally. <strong>Waist:</strong> the narrowest point, usually just above the belly button. <strong>Hip:</strong> the widest part of your hips and bum, feet together.</p>
+      <p>No tape? Use a phone charger cable and a ruler. We've all done it.</p>
+      <h2 class="display display--md">By style</h2>
+      <p><strong>Kaftans</strong> are one size, cut 60 inches wide at the sleeve and 120 to 124 cm long. They fit everyone from UK 6 to 16; on shorter frames they sit closer to the ankle.</p>
+      <p><strong>Cover-ups</strong> are one size and open at the front, so fit is about length: the Sheer Audacity sits above the knee, the Beach Please sits mid-calf.</p>
+      <p><strong>Slip dresses</strong> are bias-cut and fitted through the bust. Size on your bust measurement. <strong>Tiered dresses</strong> are fitted at the bodice and waist; size on your waist.</p>
+      <p><strong>Co-ords and shorts sets</strong> are relaxed. The pants and shorts have an elasticated back waist, so size on your hip.</p>
+      <p>Still not sure? <a href="{% url 'support:contact' %}">Send us your measurements</a> and we'll tell you honestly.</p>
+    </div>
+  </div>
+  <aside class="about-facts">
+    <div class="fact"><span class="fact__num">7</span><span>days to exchange a size</span></div>
+    <a href="{% url 'support:shipping_returns' %}" class="link-arrow">Exchange policy</a>
+  </aside>
+</section>
+{% endblock %}

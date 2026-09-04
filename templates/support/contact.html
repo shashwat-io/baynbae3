@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Contact — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head page-head--tight">
+  <p class="eyebrow">Contact</p>
+  <h1 class="display display--xl">Talk to a human.</h1>
+  <p class="lede">Order questions, exchanges, sizing, or you just want to tell us something. We reply within a working day, usually faster.</p>
+</section>
+<section class="wrap checkout">
+  <form method="post" class="checkout__form" novalidate>
+    {% csrf_token %}
+    {{ form.website }}
+    {% if form.non_field_errors %}<p class="form-error">{{ form.non_field_errors|join:" " }}</p>{% endif %}
+    <div class="fields__row">
+      {% include "partials/field.html" with f=form.name autocomplete="name" %}
+      {% include "partials/field.html" with f=form.email type="email" autocomplete="email" %}
+    </div>
+    <div class="fields__row">
+      {% include "partials/field.html" with f=form.order_number %}
+      {% include "partials/field.html" with f=form.category %}
+    </div>
+    <div class="field{% if form.message.errors %} has-error{% endif %}">
+      <label for="{{ form.message.id_for_label }}">{{ form.message.label }}</label>
+      <textarea name="{{ form.message.html_name }}" id="{{ form.message.id_for_label }}" rows="5" required>{{ form.message.value|default_if_none:'' }}</textarea>
+      {% if form.message.errors %}<p class="field__error">{{ form.message.errors|join:" " }}</p>{% endif %}
+    </div>
+    <button class="btn btn--primary btn--lg">Send</button>
+  </form>
+  <aside class="summary summary--checkout">
+    <h2 class="display display--sm">Other ways</h2>
+    <p><a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a></p>
+    {% if store.support_whatsapp %}<p><a href="https://wa.me/{{ store.support_whatsapp }}">WhatsApp us</a></p>{% endif %}
+    <p><a href="https://instagram.com/{{ store.instagram }}" rel="noopener">@{{ store.instagram }}</a> on Instagram, DMs open.</p>
+    <p class="muted">Studio hours: Mon–Sat, 10am–6pm IST. We're a small team; if it's Sunday, we're probably at the beach testing product.</p>
+  </aside>
+</section>
+{% endblock %}

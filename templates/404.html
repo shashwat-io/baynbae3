@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Not found — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head empty">
+  <p class="eyebrow">404</p>
+  <h1 class="display display--xl">That page went to the beach.</h1>
+  <p class="lede">It's not here, and it didn't leave a note. The shop, however, is exactly where you left it.</p>
+  <div class="hero__cta"><a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--lg">Shop the drop</a><a href="{% url 'catalog:home' %}" class="btn btn--ghost btn--lg">Home</a></div>
+</section>
+{% endblock %}

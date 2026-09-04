@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Track an order — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head page-head--tight">
+  <p class="eyebrow">Track</p>
+  <h1 class="display display--xl">Where's my parcel?</h1>
+  <p class="lede">No accounts here. Your order number plus the email or phone you used at checkout is all we need.</p>
+</section>
+<section class="wrap checkout">
+  <form method="get" class="checkout__form track-form" novalidate>
+    {% include "partials/field.html" with f=form.order_number autocomplete="off" %}
+    {% include "partials/field.html" with f=form.contact autocomplete="email" %}
+    <button class="btn btn--primary btn--lg">Find it</button>
+    {% if searched and not order and form.is_valid %}<p class="form-error">No order matches that. Check the number on your confirmation page and the email or phone you used.</p>{% endif %}
+  </form>
+  {% if order %}
+  <aside class="summary summary--checkout">
+    <h2 class="display display--sm">{{ order.order_number }}</h2>
+    <p class="muted">Placed {{ order.created_at|date:"j M Y" }} · {{ order.get_status_display }}</p>
+    {% if order.is_paid %}
+    <ol class="timeline timeline--compact">
+      {% for label, done in order.timeline %}<li class="{% if done %}is-done{% endif %}">{{ label }}</li>{% endfor %}
+    </ol>
+    {% if order.tracking_number %}<p><strong>{{ order.courier }}</strong> · {{ order.tracking_number }}{% if order.tracking_url %} · <a href="{{ order.tracking_url }}" rel="noopener">Track parcel</a>{% endif %}</p>{% endif %}
+    <a href="{{ order.get_absolute_url }}" class="link-arrow">Full order details</a>
+    {% elif order.can_retry_payment %}
+    <p>This order was never paid for. <a href="{% url 'orders:pay' order.token %}">Pay now</a> or start over from the shop.</p>
+    {% else %}
+    <p>This checkout expired without payment. Nothing was charged.</p>
+    {% endif %}
+  </aside>
+  {% endif %}
+</section>
+{% endblock %}

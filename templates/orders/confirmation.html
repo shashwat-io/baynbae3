@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Order {{ order.order_number }} — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head confirm-head">
+  <p class="eyebrow">{% if just_paid %}Paid, packed soon{% else %}Order{% endif %}</p>
+  <h1 class="display display--xl">{% if just_paid %}You're in.{% else %}Order {{ order.order_number }}{% endif %}</h1>
+  <p class="lede">{% if just_paid %}Order <strong>{{ order.order_number }}</strong> is confirmed. Screenshot this page or save the link; there are no accounts here, and this is your receipt.{% else %}Placed {{ order.created_at|date:"j M Y" }}. Status: <strong>{{ order.get_status_display }}</strong>.{% endif %}</p>
+</section>
+<section class="wrap checkout">
+  <div class="confirm">
+    <ol class="timeline">
+      {% for label, done in order.timeline %}<li class="{% if done %}is-done{% endif %}">{{ label }}</li>{% endfor %}
+    </ol>
+    {% if order.tracking_number %}
+    <div class="pay-address">
+      <h3 class="display display--sm">On its way</h3>
+      <p>{{ order.courier }} · {{ order.tracking_number }}{% if order.tracking_url %} · <a href="{{ order.tracking_url }}" rel="noopener">Track parcel</a>{% endif %}</p>
+    </div>
+    {% endif %}
+    <div class="pay-address">
+      <h3 class="display display--sm">What happens next</h3>
+      <p>We pack in {{ store.dispatch_days }} and add the courier and tracking number to this order. Check back with <a href="{% url 'orders:track' %}">Track</a> using your order number and email or phone.</p>
+      <p>Wrong size? <a href="{% url 'support:contact' %}?order={{ order.order_number }}">Message us</a> in the next few hours and we'll swap it before it ships.</p>
+    </div>
+    <div class="pay-address">
+      <h3 class="display display--sm">Shipping to</h3>
+      <p>{{ order.customer_name }}<br>{% for l in order.address_lines %}{{ l }}<br>{% endfor %}{{ order.phone }} · {{ order.email }}</p>
+      {% if order.note %}<p class="muted">Your note: “{{ order.note }}”</p>{% endif %}
+    </div>
+    <p class="confirm__ig">Tag <a href="https://instagram.com/{{ store.instagram }}" rel="noopener">@{{ store.instagram }}</a> when it lands. We repost the good ones and the chaotic ones.</p>
+  </div>
+  <aside class="summary summary--checkout">
+    <h2 class="display display--sm">{{ order.item_count }} item{{ order.item_count|pluralize }}</h2>
+    <ul class="mini-lines">
+      {% for item in items %}
+      <li>
+        {% if item.image_url %}<img src="{{ item.image_url }}" alt="" width="80" height="100">{% endif %}
+        <span><strong>{{ item.product_name }}</strong><br><small>{{ item.size_label }} × {{ item.quantity }}</small></span>
+        <span>₹{{ item.line_total_inr|intcomma }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <dl class="totals">
+      <div><dt>Subtotal</dt><dd>₹{{ order.subtotal_inr|intcomma }}</dd></div>
+      <div><dt>Shipping</dt><dd>{% if order.shipping_inr %}₹{{ order.shipping_inr }}{% else %}Free{% endif %}</dd></div>
+      <div class="totals__total"><dt>Paid</dt><dd>₹{{ order.total_inr|intcomma }}</dd></div>
+    </dl>
+    <p class="summary__fine">Payment ref {{ order.razorpay_payment_id }}</p>
+    <a href="{% url 'catalog:shop' %}" class="btn btn--ghost btn--block">Back to the shop</a>
+  </aside>
+</section>
+{% endblock %}

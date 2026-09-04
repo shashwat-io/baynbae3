@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Shipping & exchanges — {{ store.name }}{% endblock %}
+{% block content %}
+<section class="wrap page-head">
+  <p class="eyebrow">Policy</p>
+  <h1 class="display display--xl">Shipping &amp; exchanges</h1>
+  <p class="lede">Short version: free shipping over ₹{{ store.free_shipping_over_inr|intcomma }}, dispatch in {{ store.dispatch_days }}, exchanges within 7 days, refunds only for defects.</p>
+</section>
+<section class="wrap prose prose--narrow">
+  <h2 class="display display--md">Shipping</h2>
+  <p>Orders are packed at our Bengaluru studio and dispatched within {{ store.dispatch_days }} of payment. Shipping is free on orders of ₹{{ store.free_shipping_over_inr|intcomma }} and above, and ₹{{ store.shipping_flat_inr }} below that.</p>
+  <p>Delivery usually takes 2–3 days to metros and 4–7 days elsewhere in India after dispatch. We'll add the courier and tracking number to your order the day it leaves; find it on the <a href="{% url 'orders:track' %}">Track</a> page. We don't ship outside India yet.</p>
+  <p>Hostel or PG? Put the gate timings or the warden's name in the note at checkout and we pass it to the courier.</p>
+  <h2 class="display display--md">Payment</h2>
+  <p>All orders are prepaid via Razorpay: UPI, debit and credit cards, net banking and wallets. There is no cash on delivery. Your card and UPI details go to Razorpay directly; we never see them.</p>
+  <h2 class="display display--md">Exchanges</h2>
+  <p>You can exchange for a different size within 7 days of delivery, provided the piece is unworn, unwashed, with tags attached, and we still have the size. Write to us from the <a href="{% url 'support:contact' %}">Contact</a> page with your order number and we'll arrange a pickup. One exchange per order. If the size you want is gone, we'll offer a store credit.</p>
+  <h2 class="display display--md">Defects &amp; refunds</h2>
+  <p>Every piece is checked before it goes out, but if something arrives damaged or wrong, send us a photo within 48 hours of delivery and we'll replace it or refund you in full, your choice. Refunds go back to the original payment method within 5–7 working days.</p>
+  <p>We don't offer refunds for change of mind. Small batches don't survive a return culture, and keeping returns low is a big part of why the prices are what they are.</p>
+  <h2 class="display display--md">Cancellations</h2>
+  <p>Changed your mind within a few hours? Message us and if it hasn't been packed we'll cancel and refund in full. Once it's packed, it's an exchange.</p>
+</section>
+{% endblock %}

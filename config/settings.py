@@ -8,6 +8,7 @@ paise conversion happens only inside orders.razorpay_gateway.
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import dotenv_values
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -148,9 +149,19 @@ STORE = {
 RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = env("RAZORPAY_KEY_SECRET", "")
 RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", "")
-# With no keys configured the checkout uses a local sandbox payment page so
-# the flow can be walked end to end. Never true when real keys are present.
-RAZORPAY_SANDBOX = not (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
+if not DEBUG:
+    # Outside development every Razorpay secret is mandatory. A missing key
+    # must stop the process, never silently switch the shop to sandbox mode.
+    for _name in ("RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"):
+        if not env(_name):
+            raise ImproperlyConfigured(
+                f"{_name} is not set. Razorpay keys are required when DEBUG is false "
+                "(see README.md)."
+            )
+# With DEBUG on and no keys configured, the checkout uses a local sandbox
+# payment page so the flow can be walked end to end. Never true in production
+# and never true when real keys are present.
+RAZORPAY_SANDBOX = DEBUG and not (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)
 
 # Unpaid orders older than this are marked abandoned by `manage.py expire_orders`.
 ORDER_EXPIRY_MINUTES = 60

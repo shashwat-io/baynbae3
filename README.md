@@ -14,9 +14,11 @@ ADMIN_PASSWORD=changeme ./bootstrap.sh     # venv, deps, .env, images, migrate, 
 - Storefront: http://127.0.0.1:8000/
 - Back office: http://127.0.0.1:8000/admin/ (user `admin`, the password you set)
 
-Without Razorpay keys the checkout runs in **sandbox mode**: a local page stands in for Razorpay's hosted
-checkout and returns through the real callback with a real signature check, so the whole buy flow can be
-walked on a laptop. Add `rzp_test_` keys to `.env` and it switches to Razorpay's hosted checkout automatically.
+With `DEBUG=true` and no Razorpay keys the checkout runs in **sandbox mode**: a local page stands in for
+Razorpay's hosted checkout and returns through the real callback with a real signature check, so the whole buy
+flow can be walked on a laptop. Add `rzp_test_` keys to `.env` and it switches to Razorpay's hosted checkout
+automatically. Sandbox mode never exists with `DEBUG=false`: the process refuses to start until every Razorpay
+variable is set.
 
 ## Tests
 
@@ -59,8 +61,8 @@ tools/render_imagery.py   generates every product and editorial image as SVG in 
 | `SECRET_KEY` | required |
 | `DEBUG` | `true` locally |
 | `ALLOWED_HOSTS`, `SITE_URL` | public origin; `SITE_URL` is used for the Razorpay callback URL |
-| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | blank = sandbox mode |
-| `RAZORPAY_WEBHOOK_SECRET` | optional; webhook returns 403 without it |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | required when `DEBUG=false`; blank with `DEBUG=true` = sandbox mode |
+| `RAZORPAY_WEBHOOK_SECRET` | required when `DEBUG=false`; the webhook returns 403 without it |
 | `SUPPORT_EMAIL`, `SUPPORT_WHATSAPP`, `INSTAGRAM_HANDLE` | storefront contact details |
 
 Shipping rules (free over ₹1,999, ₹79 otherwise) and dispatch copy live in `STORE` in `config/settings.py`.

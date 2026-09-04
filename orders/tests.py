@@ -4,10 +4,14 @@ mocked, and signatures are computed with the same HMAC the gateway uses.
 """
 import hashlib
 import hmac
+import importlib.util
 import json
+import os
 from datetime import timedelta
 from unittest import mock
 
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -49,6 +53,55 @@ def make_product(slug="tester", price=2499, sizes=None, live=True):
         Variant.objects.create(product=product, size=size, stock=stock)
     ProductImage.objects.create(product=product, filename=f"{slug}-1.svg", alt="front")
     return product
+
+
+def load_settings(**env):
+    """
+    Import config/settings.py as a throwaway module under exactly the given
+    environment. The .env loader is stubbed out so the developer's local file
+    cannot leak keys into the test.
+    """
+    path = settings.BASE_DIR / "config" / "settings.py"
+    with mock.patch.dict(os.environ, {"SECRET_KEY": "test-only", **env}, clear=True), mock.patch(
+        "dotenv.dotenv_values", return_value={}
+    ):
+        spec = importlib.util.spec_from_file_location("settings_under_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    return module
+
+
+class SettingsTests(TestCase):
+    """Sandbox payment mode must never exist outside DEBUG (audit: CRITICAL, fails open)."""
+
+    KEYS = {"RAZORPAY_KEY_ID": "rzp_test_x", "RAZORPAY_KEY_SECRET": "s", "RAZORPAY_WEBHOOK_SECRET": "w"}
+
+    def test_production_without_razorpay_keys_refuses_to_start(self):
+        with self.assertRaises(ImproperlyConfigured) as ctx:
+            load_settings(DEBUG="false")
+        self.assertIn("RAZORPAY_KEY_ID", str(ctx.exception))
+
+    def test_production_names_each_missing_variable(self):
+        for missing in self.KEYS:
+            env = {k: v for k, v in self.KEYS.items() if k != missing}
+            with self.assertRaises(ImproperlyConfigured, msg=missing) as ctx:
+                load_settings(DEBUG="false", **env)
+            self.assertIn(missing, str(ctx.exception))
+
+    def test_production_webhook_secret_is_required_not_optional(self):
+        env = {k: v for k, v in self.KEYS.items() if k != "RAZORPAY_WEBHOOK_SECRET"}
+        with self.assertRaises(ImproperlyConfigured) as ctx:
+            load_settings(DEBUG="false", **env)
+        self.assertIn("RAZORPAY_WEBHOOK_SECRET", str(ctx.exception))
+
+    def test_production_with_keys_is_never_sandbox(self):
+        module = load_settings(DEBUG="false", **self.KEYS)
+        self.assertFalse(module.DEBUG)
+        self.assertFalse(module.RAZORPAY_SANDBOX)
+
+    def test_debug_without_keys_is_sandbox_and_with_keys_is_not(self):
+        self.assertTrue(load_settings(DEBUG="true").RAZORPAY_SANDBOX)
+        self.assertFalse(load_settings(DEBUG="true", **self.KEYS).RAZORPAY_SANDBOX)
 
 
 class BagTests(TestCase):

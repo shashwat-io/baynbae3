@@ -1,12 +1,14 @@
 """
 Payment-path tests. Nothing here touches the network: the Razorpay SDK is
-mocked, and signatures are computed with the same HMAC the gateway uses.
+mocked, checkout.js is never loaded, and signatures are computed with the
+same HMAC the gateway uses.
 """
 import hashlib
 import hmac
 import importlib.util
 import json
 import os
+import re
 from datetime import timedelta
 from unittest import mock
 
@@ -288,14 +290,42 @@ class PayPageTests(TestCase):
         self.assertContains(r, "2,999")
 
     @override_settings(RAZORPAY_SANDBOX=False, RAZORPAY_KEY_ID="rzp_test_abc", RAZORPAY_KEY_SECRET="s3cret")
-    def test_live_pay_page_posts_to_razorpay_hosted_checkout(self):
+    def test_live_pay_page_opens_standard_checkout_and_posts_to_verify(self):
         r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
-        self.assertContains(r, gateway.HOSTED_CHECKOUT_URL)
-        self.assertContains(r, 'name="key_id" value="rzp_test_abc"')
-        self.assertContains(r, 'name="callback_url" value="http://127.0.0.1:8000/checkout/callback/"')
+        html = r.content.decode()
+        self.assertContains(r, gateway.CHECKOUT_JS_URL)
+        self.assertContains(r, 'id="rzp-options"')
+        options = json.loads(html.split('id="rzp-options" type="application/json">')[1].split("</script>")[0])
+        self.assertEqual(options["key"], "rzp_test_abc")
+        self.assertEqual(options["order_id"], self.order.razorpay_order_id)
+        self.assertEqual(options["amount"], 2999 * 100)  # paise, computed in the gateway module
+        self.assertEqual(options["currency"], "INR")
+        self.assertEqual(options["prefill"]["email"], ADDRESS["email"])
+        self.assertNotIn("s3cret", html)
+        self.assertContains(r, f'action="{reverse("orders:verify_payment")}"')
+        self.assertContains(r, "csrfmiddlewaretoken")
+        self.assertContains(r, "new Razorpay(")
+        self.assertNotContains(r, "api.razorpay.com/v1/checkout/embedded")
         self.assertNotContains(r, "Sandbox mode")
         # the sandbox stand-in must not be reachable with real keys
         self.assertEqual(self.client.get(reverse("orders:sandbox_gateway", args=[self.order.order_number])).status_code, 404)
+
+    @override_settings(RAZORPAY_SANDBOX=False, RAZORPAY_KEY_ID="rzp_test_abc", RAZORPAY_KEY_SECRET="s3cret")
+    def test_dismissing_the_modal_leaves_the_order_and_stock_untouched(self):
+        r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
+        html = r.content.decode()
+        # the dismiss handler talks to nobody: no request, no navigation
+        handler = html[html.index("ondismiss"):]
+        handler = handler[: handler.index("}")]
+        self.assertNotIn("fetch(", handler)
+        self.assertNotIn("location", handler)
+        self.assertNotIn("submit(", handler)
+        self.order.refresh_from_db()
+        self.s.refresh_from_db()
+        self.assertEqual(self.order.status, "pending")
+        self.assertEqual(self.s.stock, 3)
+        # ...and the shopper can simply try again
+        self.assertEqual(self.client.get(reverse("orders:pay", args=[self.order.order_number])).status_code, 200)
 
     def test_unknown_order_number_404s(self):
         self.assertEqual(self.client.get(reverse("orders:pay", args=["BNB-999999"])).status_code, 404)
@@ -331,10 +361,10 @@ class PayPageTests(TestCase):
         self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.order_number]), fetch_redirect_response=False)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
-        # the browser callback arrives afterwards: no second decrement
+        # the browser's verify post arrives afterwards: no second decrement
         sig = gateway.sign_payment(self.order.razorpay_order_id, "pay_webhook")
         self.client.post(
-            reverse("orders:callback"),
+            reverse("orders:verify_payment"),
             {"razorpay_order_id": self.order.razorpay_order_id, "razorpay_payment_id": "pay_webhook", "razorpay_signature": sig},
         )
         self.order.refresh_from_db()
@@ -353,8 +383,8 @@ class PayPageTests(TestCase):
 
 
 @override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
-class CallbackTests(TestCase):
-    """The hosted checkout POSTs back with a signature; that is the only thing we trust."""
+class VerifyTests(TestCase):
+    """The browser posts Razorpay's signed result to /checkout/verify/; the signature is the only thing we trust."""
 
     def setUp(self):
         self.product = make_product(price=2000, sizes={"S": 2})
@@ -364,17 +394,23 @@ class CallbackTests(TestCase):
         self.client.post(reverse("orders:checkout"), ADDRESS)
         self.order = Order.objects.get()
 
-    def callback(self, payment_id="pay_ok", signature=None, client=None):
+    def verify(self, payment_id="pay_ok", signature=None, client=None, ajax=True):
         client = client or self.client
         signature = signature if signature is not None else gateway.sign_payment(self.order.razorpay_order_id, payment_id)
+        headers = {"X-Requested-With": "XMLHttpRequest"} if ajax else {}
         return client.post(
-            reverse("orders:callback"),
+            reverse("orders:verify_payment"),
             {"razorpay_order_id": self.order.razorpay_order_id, "razorpay_payment_id": payment_id, "razorpay_signature": signature},
+            headers=headers,
         )
 
+    def confirmation_url(self):
+        return reverse("orders:confirmation", args=[self.order.order_number])
+
     def test_valid_signature_marks_paid_and_decrements_stock_once(self):
-        r = self.callback()
-        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.order_number]), fetch_redirect_response=False)
+        r = self.verify()
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), {"ok": True, "redirect_url": self.confirmation_url()})
         self.order.refresh_from_db()
         self.s.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
@@ -382,58 +418,88 @@ class CallbackTests(TestCase):
         self.assertIsNotNone(self.order.paid_at)
         self.assertEqual(self.s.stock, 0)
 
-    def test_duplicate_callback_is_idempotent(self):
-        self.callback()
-        self.callback()
+    def test_plain_form_post_redirects_instead_of_json(self):
+        r = self.verify(ajax=False)
+        self.assertRedirects(r, self.confirmation_url(), fetch_redirect_response=False)
+        self.assertEqual(Order.objects.get().status, "paid")
+
+    def test_duplicate_verify_is_idempotent(self):
+        self.verify()
+        self.verify()
         self.s.refresh_from_db()
         self.assertEqual(self.s.stock, 0)  # not -2
         self.assertEqual(Order.objects.filter(status="paid").count(), 1)
 
     def test_bad_signature_marks_failed_and_leaves_stock(self):
-        r = self.callback(signature="deadbeef")
-        self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.order_number]), fetch_redirect_response=False)
+        r = self.verify(signature="deadbeef")
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(r.json()["ok"])
+        self.assertEqual(r.json()["redirect_url"], reverse("orders:cancelled", args=[self.order.order_number]))
         self.order.refresh_from_db()
         self.s.refresh_from_db()
         self.assertEqual(self.order.status, "payment_failed")
         self.assertEqual(self.s.stock, 2)
+        # the plain-form flavour lands on the retry page
+        r = self.verify(signature="deadbeef", ajax=False)
+        self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.order_number]), fetch_redirect_response=False)
 
     def test_signature_for_other_order_rejected(self):
         wrong = gateway.sign_payment("order_other", "pay_ok")
-        self.callback(signature=wrong)
+        self.verify(signature=wrong)
         self.order.refresh_from_db()
         self.assertNotEqual(self.order.status, "paid")
 
     def test_unknown_gateway_order_400(self):
-        r = self.client.post(reverse("orders:callback"), {"razorpay_order_id": "order_nope", "razorpay_payment_id": "p", "razorpay_signature": "s"})
+        r = self.client.post(
+            reverse("orders:verify_payment"),
+            {"razorpay_order_id": "order_nope", "razorpay_payment_id": "p", "razorpay_signature": "s"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
         self.assertEqual(r.status_code, 400)
+        self.assertFalse(r.json()["ok"])
 
-    def test_callback_works_without_session_cookie(self):
-        """Razorpay posts cross-site; SameSite=Lax means no session. Must still work."""
+    def test_verify_requires_a_csrf_token_and_only_the_webhook_is_exempt(self):
+        """Audit 7a: verify is same-origin now, so the CSRF exemption is gone; the webhook keeps its own."""
+        from . import views
+
+        self.assertFalse(getattr(views.verify_payment, "csrf_exempt", False))
+        self.assertTrue(getattr(views.razorpay_webhook, "csrf_exempt", False))
+        self.assertFalse(hasattr(views, "payment_callback"))
+        strict = Client(enforce_csrf_checks=True)
+        strict.cookies = self.client.cookies  # same session, no token
+        r = self.verify(client=strict)
+        self.assertEqual(r.status_code, 403)
+        self.order.refresh_from_db()
+        self.s.refresh_from_db()
+        self.assertEqual(self.order.status, "pending")
+        self.assertEqual(self.s.stock, 2)
+
+    def test_valid_signature_from_a_session_that_lost_its_cookie_still_pays_and_earns_the_receipt(self):
+        """The signature only ever reaches the payer's browser, so it is proof enough on its own."""
         anonymous = Client()
-        r = self.callback(client=anonymous)
-        self.assertEqual(r.status_code, 302)
+        r = self.verify(client=anonymous)
+        self.assertEqual(r.status_code, 200)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
-        # ...and the shopper's own browser, following the redirect, gets the receipt
-        r = self.client.get(r.url)
-        self.assertEqual(r.status_code, 200)
-        self.assertIn(self.order.order_number, self.client.session["confirmed_orders"])
+        self.assertEqual(anonymous.get(self.confirmation_url()).status_code, 200)
+        # the session that started the checkout gets it too
+        self.assertEqual(self.client.get(self.confirmation_url()).status_code, 200)
 
     def test_confirmation_clears_bag_and_shows_order(self):
-        self.callback()
-        r = self.client.get(reverse("orders:confirmation", args=[self.order.order_number]))
+        self.verify()
+        r = self.client.get(self.confirmation_url())
         self.assertContains(r, self.order.order_number)
         self.assertContains(r, "re in.")
         self.assertEqual(self.client.session.get(SESSION_KEY), {})
 
     def test_confirmation_for_unpaid_order_redirects_to_pay(self):
-        r = self.client.get(reverse("orders:confirmation", args=[self.order.order_number]))
+        r = self.client.get(self.confirmation_url())
         self.assertRedirects(r, reverse("orders:pay", args=[self.order.order_number]))
 
     def test_receipt_is_session_gated_not_a_bearer_link(self):
         """Audit MEDIUM: the old signed-token link exposed name, address, phone and email forever."""
-        self.callback()
-        url = reverse("orders:confirmation", args=[self.order.order_number])
+        self.verify()
+        url = self.confirmation_url()
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, ADDRESS["address1"])
@@ -453,7 +519,7 @@ class CallbackTests(TestCase):
     def test_oversell_is_flagged_not_hidden(self):
         # someone else bought the stock while this shopper was on the gateway
         Variant.objects.filter(pk=self.s.pk).update(stock=1)
-        self.callback()
+        self.verify()
         self.order.refresh_from_db()
         self.s.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
@@ -470,16 +536,23 @@ class CallbackTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "pending")
-        # ...and a good callback after a failed attempt still completes
-        self.callback()
+        # ...and a good verify after a failed attempt still completes
+        self.verify()
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
 
-    def test_sandbox_gateway_round_trip(self):
+    def test_sandbox_gateway_round_trip_through_verify(self):
         r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.order_number]))
         self.assertContains(r, "Payment succeeds")
         r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.order_number]), {"outcome": "success"})
-        self.assertContains(r, 'name="razorpay_signature"')
+        html = r.content.decode()
+        self.assertContains(r, f'action="{reverse("orders:verify_payment")}"')
+        self.assertContains(r, "csrfmiddlewaretoken")
+        # submit the stand-in's form exactly as the browser would
+        fields = dict(re.findall(r'name="(razorpay_\w+)" value="([^"]+)"', html))
+        r = self.client.post(reverse("orders:verify_payment"), fields)
+        self.assertRedirects(r, self.confirmation_url(), fetch_redirect_response=False)
+        self.assertEqual(Order.objects.get().status, "paid")
         r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.order_number]), {"outcome": "fail"})
         self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.order_number]), fetch_redirect_response=False)
 
@@ -515,7 +588,7 @@ class LiveGatewayTests(TestCase):
             **{k: v for k, v in ADDRESS.items()},
         ).pk
 
-    def test_webhook_marks_paid_and_is_idempotent_with_callback(self):
+    def test_webhook_marks_paid_and_is_idempotent_with_verify(self):
         pk = self._order()
         order = Order.objects.get(pk=pk)
         OrderItem.objects.create(order=order, product=self.product, variant=self.m, product_name="T", size="M", quantity=2, unit_price_inr=3000)
@@ -527,9 +600,10 @@ class LiveGatewayTests(TestCase):
         self.m.refresh_from_db()
         self.assertEqual(order.status, "paid")
         self.assertEqual(self.m.stock, 2)
-        # the browser callback arriving afterwards changes nothing
+        # the browser's verify post arriving afterwards changes nothing
         cb_sig = gateway.sign_payment("order_LIVE123", "pay_W")
-        self.client.post(reverse("orders:callback"), {"razorpay_order_id": "order_LIVE123", "razorpay_payment_id": "pay_W", "razorpay_signature": cb_sig})
+        r = self.client.post(reverse("orders:verify_payment"), {"razorpay_order_id": "order_LIVE123", "razorpay_payment_id": "pay_W", "razorpay_signature": cb_sig})
+        self.assertEqual(r.status_code, 302)
         self.m.refresh_from_db()
         self.assertEqual(self.m.stock, 2)
 

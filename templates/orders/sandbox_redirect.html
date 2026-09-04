@@ -3,7 +3,8 @@
 {% block content %}
 <section class="wrap page-head">
   <h1 class="display display--lg">Heading back…</h1>
-  <form method="post" action="{{ callback_url }}" id="return-form">
+  <form method="post" action="{{ verify_url }}" id="return-form">
+    {% csrf_token %}
     <input type="hidden" name="razorpay_order_id" value="{{ razorpay_order_id }}">
     <input type="hidden" name="razorpay_payment_id" value="{{ razorpay_payment_id }}">
     <input type="hidden" name="razorpay_signature" value="{{ razorpay_signature }}">

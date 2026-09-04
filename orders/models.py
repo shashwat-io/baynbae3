@@ -103,7 +103,7 @@ class Order(models.Model):
     def mark_paid(self, payment_id):
         """
         Transition pending -> paid exactly once and decrement stock exactly once.
-        Safe to call repeatedly (callback + webhook); later calls are no-ops.
+        Safe to call repeatedly (verify endpoint + webhook); later calls are no-ops.
         Returns True if this call performed the transition.
         """
         with transaction.atomic():

@@ -9,25 +9,24 @@
 </section>
 <section class="wrap checkout">
   <div class="pay-card">
-    <form method="post" action="{{ action_url }}" class="pay-form">
-      {% if sandbox %}{% csrf_token %}{% endif %}
-      <input type="hidden" name="key_id" value="{{ key_id }}">
-      <input type="hidden" name="order_id" value="{{ order.razorpay_order_id }}">
-      <input type="hidden" name="name" value="{{ store.name }}">
-      <input type="hidden" name="description" value="Order {{ order.order_number }}">
-      <input type="hidden" name="image" value="{{ logo_url }}">
-      <input type="hidden" name="prefill[name]" value="{{ order.customer_name }}">
-      <input type="hidden" name="prefill[contact]" value="{{ order.phone }}">
-      <input type="hidden" name="prefill[email]" value="{{ order.email }}">
-      <input type="hidden" name="notes[order_number]" value="{{ order.order_number }}">
-      <input type="hidden" name="callback_url" value="{{ callback_url }}">
-      <input type="hidden" name="cancel_url" value="{{ cancel_url }}">
+    {% if sandbox %}
+    <form method="post" action="{{ sandbox_url }}" class="pay-form">
+      {% csrf_token %}
       <button class="btn btn--primary btn--lg btn--block" type="submit">Pay ₹{{ order.total_inr|intcomma }} securely</button>
     </form>
+    {% else %}
+    <form method="post" action="{% url 'orders:verify_payment' %}" class="pay-form" id="pay-form">
+      {% csrf_token %}
+      <button class="btn btn--primary btn--lg btn--block" type="submit" id="pay-button">Pay ₹{{ order.total_inr|intcomma }} securely</button>
+    </form>
+    <p id="pay-status" class="form-error" role="alert" hidden></p>
+    <noscript><p class="form-error">Paying needs JavaScript for Razorpay's secure window. Turn it on and reload this page; nothing has been charged.</p></noscript>
+    {{ checkout_options|json_script:"rzp-options" }}
+    {% endif %}
     <ul class="pay-methods">
       <li>UPI</li><li>Cards</li><li>Net banking</li><li>Wallets</li>
     </ul>
-    <p class="summary__fine">You'll be taken to Razorpay's checkout and brought straight back here. {% if sandbox %}<strong>Sandbox mode:</strong> no Razorpay keys are configured, so a local stand-in page plays the part. Nothing is charged.{% endif %}</p>
+    <p class="summary__fine">Razorpay's secure window opens right here on this page. We never see your card or UPI details. {% if sandbox %}<strong>Sandbox mode:</strong> no Razorpay keys are configured, so a local stand-in page plays the part. Nothing is charged.{% endif %}</p>
     <div class="pay-address">
       <h3 class="display display--sm">Shipping to</h3>
       <p>{{ order.customer_name }}<br>{% for l in order.address_lines %}{{ l }}<br>{% endfor %}{{ order.phone }} · {{ order.email }}</p>
@@ -52,4 +51,65 @@
     </dl>
   </aside>
 </section>
+{% if not sandbox %}
+<script src="{{ checkout_js_url }}"></script>
+<script>
+/* Razorpay Standard Checkout. No framework, no build step.
+   1. The Pay button opens Razorpay's modal with the server-built options.
+   2. On success the modal hands back order id, payment id and signature; we
+      POST them to our own verify endpoint with the CSRF token, and go to the
+      receipt it names.
+   3. Closing the modal does nothing: no request, the order stays held. */
+(function () {
+  "use strict";
+  var form = document.getElementById("pay-form");
+  var button = document.getElementById("pay-button");
+  var status = document.getElementById("pay-status");
+  var options = JSON.parse(document.getElementById("rzp-options").textContent);
+
+  function say(message) { status.textContent = message; status.hidden = false; }
+
+  function verify(response) {
+    var body = new FormData(form);
+    body.append("razorpay_order_id", response.razorpay_order_id || options.order_id);
+    body.append("razorpay_payment_id", response.razorpay_payment_id);
+    body.append("razorpay_signature", response.razorpay_signature);
+    fetch(form.action, {
+      method: "POST",
+      body: body,
+      credentials: "same-origin",
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (data) {
+        if (data.redirect_url) { window.location.href = data.redirect_url; return; }
+        say("We couldn't confirm your payment. If money left your account, message us with order " + options.description.replace("Order ", "") + " and we'll sort it out.");
+        button.disabled = false;
+      })
+      .catch(function () {
+        say("Network error while confirming your payment. Don't pay again — message us with your order number first.");
+        button.disabled = false;
+      });
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    status.hidden = true;
+    if (typeof Razorpay === "undefined") {
+      say("The payment window couldn't load. Check your connection and reload this page.");
+      return;
+    }
+    button.disabled = true;
+    options.handler = verify;
+    options.modal = {
+      ondismiss: function () {
+        button.disabled = false;
+        say("Payment window closed. Nothing was charged and your order is still held. Try again when you're ready.");
+      }
+    };
+    new Razorpay(options).open();
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

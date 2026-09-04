@@ -30,7 +30,7 @@
       {% include "partials/field.html" with f=form.note %}
     </fieldset>
     <button class="btn btn--primary btn--lg btn--block" type="submit">Continue to payment — ₹{{ bag.total_inr|intcomma }}</button>
-    <p class="summary__fine">Next step is Razorpay's secure page. We never see your card or UPI details.</p>
+    <p class="summary__fine">Next step is Razorpay's secure payment window. We never see your card or UPI details.</p>
   </form>
   <aside class="summary summary--checkout">
     <h2 class="display display--sm">{{ lines|length }} item{{ lines|length|pluralize }}</h2>

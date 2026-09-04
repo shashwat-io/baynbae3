@@ -2,13 +2,11 @@ import json
 import logging
 import time
 
-from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 
@@ -177,16 +175,21 @@ def _session_order_or_404(request, order_number):
     return order
 
 
+def _remember_confirmed(request, order):
+    """Entitle this session to the receipt for `order` (PROJECT.md S19)."""
+    confirmed = list(request.session.get(CONFIRMED_ORDERS_KEY, []))
+    if order.order_number not in confirmed:
+        confirmed.append(order.order_number)
+        request.session[CONFIRMED_ORDERS_KEY] = confirmed
+
+
 def _grant_receipt(request, order):
     """
     Record in the session that this browser paid for `order`. Returns True the
     first time the shopper lands here after paying, so the page can greet them
     and the bag can be emptied.
     """
-    confirmed = list(request.session.get(CONFIRMED_ORDERS_KEY, []))
-    if order.order_number not in confirmed:
-        confirmed.append(order.order_number)
-        request.session[CONFIRMED_ORDERS_KEY] = confirmed
+    _remember_confirmed(request, order)
     if request.session.get(PENDING_ORDER_KEY) == order.pk:
         Bag(request.session).clear()
         request.session.pop(PENDING_ORDER_KEY, None)
@@ -195,7 +198,7 @@ def _grant_receipt(request, order):
 
 
 def pay(request, order_number):
-    """Order summary plus the form that hands the shopper to Razorpay."""
+    """Order summary plus the button that opens Razorpay's Standard Checkout."""
     order = _session_order_or_404(request, order_number)
     if order.is_paid:
         return redirect("orders:confirmation", order_number=order.order_number)
@@ -217,52 +220,61 @@ def pay(request, order_number):
             messages.info(request, "That checkout expired. Your bag is still here — go again.")
             return redirect("orders:bag")
         order.status = Order.Status.PENDING
-    callback_url = settings.SITE_URL + reverse("orders:callback")
-    cancel_url = settings.SITE_URL + reverse("orders:cancelled", args=[order.order_number])
-    if gateway.is_sandbox():
-        action_url = reverse("orders:sandbox_gateway", args=[order.order_number])
-    else:
-        action_url = gateway.HOSTED_CHECKOUT_URL
+    sandbox = gateway.is_sandbox()
     return render(
         request,
         "orders/pay.html",
         {
             "order": order,
             "items": order.items.all(),
-            "action_url": action_url,
-            "key_id": settings.RAZORPAY_KEY_ID,
-            "callback_url": callback_url,
-            "cancel_url": cancel_url,
-            "logo_url": settings.SITE_URL + "/static/img/social-card.png",
-            "sandbox": gateway.is_sandbox(),
+            "sandbox": sandbox,
+            "sandbox_url": reverse("orders:sandbox_gateway", args=[order.order_number]) if sandbox else "",
+            "checkout_options": None if sandbox else gateway.checkout_options(order),
+            "checkout_js_url": gateway.CHECKOUT_JS_URL,
         },
     )
 
 
-@csrf_exempt
+def _verify_response(request, ok, redirect_to, error="", status=200):
+    """JSON for the checkout script, a redirect for a plain form post (the sandbox page)."""
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        body = {"ok": ok, "redirect_url": redirect_to}
+        if error:
+            body["error"] = error
+        return JsonResponse(body, status=status)
+    return redirect(redirect_to)
+
+
 @require_POST
-def payment_callback(request):
+def verify_payment(request):
     """
-    Razorpay's hosted checkout POSTs here from razorpay.com, so the session
-    cookie is not guaranteed and CSRF cannot apply. Everything is verified
-    with the HMAC signature and the order is located by gateway id.
+    Razorpay's Standard Checkout hands the signed result to the shopper's
+    browser, which posts it here — same origin, so the session cookie and the
+    CSRF token both apply. The signature is the only thing that proves
+    payment; the order is located by gateway id.
     """
     rp_order_id = request.POST.get("razorpay_order_id", "")
     payment_id = request.POST.get("razorpay_payment_id", "")
     signature = request.POST.get("razorpay_signature", "")
     order = Order.objects.filter(razorpay_order_id=rp_order_id).first() if rp_order_id else None
     if order is None:
-        log.warning("Callback for unknown gateway order %r", rp_order_id)
-        return HttpResponseBadRequest("Unknown order.")
+        log.warning("Verify for unknown gateway order %r", rp_order_id)
+        return _verify_response(request, ok=False, redirect_to=reverse("orders:bag"), error="Unknown order.", status=400)
     if not gateway.verify_payment_signature(rp_order_id, payment_id, signature):
         log.warning("Bad payment signature for %s", order.order_number)
         order.mark_payment_failed()
-        return redirect("orders:cancelled", order_number=order.order_number)
+        return _verify_response(
+            request,
+            ok=False,
+            redirect_to=reverse("orders:cancelled", args=[order.order_number]),
+            error="Signature verification failed.",
+            status=400,
+        )
     order.mark_paid(payment_id)
-    # The shopper's browser follows this redirect as a top-level GET, which
-    # does carry the SameSite=Lax session cookie, so the confirmation view can
-    # recognise the session that started the checkout and grant the receipt.
-    return redirect("orders:confirmation", order_number=order.order_number)
+    # A valid signature is proof this browser completed the payment, so it is
+    # entitled to the receipt even when the webhook won the race above.
+    _remember_confirmed(request, order)
+    return _verify_response(request, ok=True, redirect_to=reverse("orders:confirmation", args=[order.order_number]))
 
 
 def payment_cancelled(request, order_number):
@@ -289,7 +301,7 @@ def confirmation(request, order_number):
 
 
 def sandbox_gateway(request, order_number):
-    """Local stand-in for Razorpay's hosted checkout. Never mounted with real keys."""
+    """Local stand-in for Razorpay's checkout. Never mounted with real keys."""
     if not gateway.is_sandbox():
         raise Http404
     order = _session_order_or_404(request, order_number)
@@ -300,7 +312,7 @@ def sandbox_gateway(request, order_number):
             request,
             "orders/sandbox_redirect.html",
             {
-                "callback_url": reverse("orders:callback"),
+                "verify_url": reverse("orders:verify_payment"),
                 "razorpay_order_id": order.razorpay_order_id,
                 "razorpay_payment_id": payment_id,
                 "razorpay_signature": signature,
@@ -314,7 +326,12 @@ def sandbox_gateway(request, order_number):
 @csrf_exempt
 @require_POST
 def razorpay_webhook(request):
-    """Belt-and-braces: if the shopper closes the tab before the callback, the webhook still lands."""
+    """
+    Belt-and-braces: if the shopper closes the tab before the browser can post
+    to verify_payment, the webhook still lands. Razorpay calls this cross-site,
+    so it is the one view that is CSRF-exempt; it trusts nothing but the HMAC
+    over the raw body.
+    """
     if not gateway.verify_webhook_signature(request.body, request.headers.get("X-Razorpay-Signature", "")):
         return HttpResponse("Bad signature.", status=403)
     try:

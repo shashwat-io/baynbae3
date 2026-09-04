@@ -3,9 +3,11 @@ The only file that talks to Razorpay, and the only place paise exist.
 
 Two modes:
   * live   — RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are set. Orders are created
-             through the SDK and the customer pays on Razorpay's hosted page.
-  * sandbox — no keys. A local stand-in page plays Razorpay so the whole
-             checkout can be walked end to end on a laptop.
+             through the SDK and the customer pays in Razorpay's Standard
+             Checkout modal on our own pay page; the browser then posts the
+             signed result to our verify endpoint.
+  * sandbox — DEBUG and no keys. A local stand-in page plays Razorpay so the
+             whole checkout can be walked end to end on a laptop.
 """
 import hashlib
 import hmac
@@ -13,11 +15,30 @@ import secrets
 
 from django.conf import settings
 
-HOSTED_CHECKOUT_URL = "https://api.razorpay.com/v1/checkout/embedded"
+CHECKOUT_JS_URL = "https://checkout.razorpay.com/v1/checkout.js"
 
 
 def to_paise(rupees):
     return int(rupees) * 100
+
+
+def checkout_options(order):
+    """
+    The options object handed to `new Razorpay(...)` on the pay page. The
+    amount is informational to the modal (Razorpay binds the charge to the
+    order id created server-side) but it is still derived here, from the
+    order's stored total, never from anything the browser sent.
+    """
+    return {
+        "key": settings.RAZORPAY_KEY_ID,
+        "amount": to_paise(order.total_inr),
+        "currency": "INR",
+        "order_id": order.razorpay_order_id,
+        "name": settings.STORE["name"],
+        "description": f"Order {order.order_number}",
+        "prefill": {"name": order.customer_name, "email": order.email, "contact": order.phone},
+        "notes": {"order_number": order.order_number},
+    }
 
 
 def is_sandbox():

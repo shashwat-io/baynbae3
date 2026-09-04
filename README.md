@@ -72,7 +72,7 @@ tools/render_imagery.py   generates every product and editorial image as SVG in 
 | `RAZORPAY_WEBHOOK_SECRET` | required when `DEBUG=false`; the webhook returns 403 without it |
 | `SUPPORT_EMAIL`, `SUPPORT_WHATSAPP`, `INSTAGRAM_HANDLE` | storefront contact details |
 
-Shipping rules (free over ₹1,999, ₹79 otherwise) and dispatch copy live in `STORE` in `config/settings.py`.
+Shipping is free across India on all orders; that sentence and the dispatch copy live in `STORE` in `config/settings.py`.
 
 ## Deploying
 

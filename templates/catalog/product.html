@@ -66,7 +66,7 @@
     <ul class="pdp__facts">
       <li><strong>{{ product.print_name }}</strong> · {{ product.colourway }}</li>
       <li>One of <strong>{{ product.batch_size }}</strong> pieces in this batch</li>
-      <li>Ships from Bengaluru in {{ store.dispatch_days }}{% if product.price_inr >= store.free_shipping_over_inr %}, shipping on us{% endif %}</li>
+      <li>Ships from Bengaluru in {{ store.dispatch_days }}, shipping on us</li>
     </ul>
 
     <div class="pdp__copy">
@@ -85,7 +85,7 @@
     </details>
     <details class="acc">
       <summary>Shipping &amp; exchanges</summary>
-      <p>Prepaid only. Free shipping over ₹{{ store.free_shipping_over_inr|intcomma }}, ₹{{ store.shipping_flat_inr }} otherwise. Dispatch in {{ store.dispatch_days }}, delivery in 2–7 days after that.</p>
+      <p>Prepaid only. {{ store.shipping_note }}. Dispatch in {{ store.dispatch_days }}, delivery in 2–7 days after that.</p>
       <p>Size exchanges within 7 days of delivery, unworn with tags, subject to stock. <a href="{% url 'support:shipping_returns' %}">Full policy</a>.</p>
     </details>
   </div>

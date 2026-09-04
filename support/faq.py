@@ -13,7 +13,7 @@ FAQ = [
     {
         "group": "Shipping",
         "items": [
-            ("How long does delivery take?", "We dispatch in 2–4 working days from our Bengaluru studio. Metros usually see it in 2–3 days after that, everywhere else in 4–7. Shipping is free over ₹1,999 and ₹79 otherwise."),
+            ("How long does delivery take?", "We dispatch in 2–4 working days from our Bengaluru studio. Metros usually see it in 2–3 days after that, everywhere else in 4–7. Shipping is free across India on all orders."),
             ("Do you ship to hostels and PGs?", "Yes, and we know the gate situation. Put the gate timings or warden's name in the note at checkout and we pass it on to the courier."),
             ("Do you ship outside India?", "Not yet. If you're abroad and desperate, send us a note — we've been known to make a plan."),
             ("How do I track my parcel?", "Once it's shipped we add the courier and tracking number to your order. Use the Track page with your order number and email."),

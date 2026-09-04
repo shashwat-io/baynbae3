@@ -155,8 +155,9 @@ STORE = {
     "instagram": env("INSTAGRAM_HANDLE", "baynbae"),
     "support_email": env("SUPPORT_EMAIL", "hello@baynbae.in"),
     "support_whatsapp": env("SUPPORT_WHATSAPP", ""),
-    "free_shipping_over_inr": 1999,
-    "shipping_flat_inr": 79,
+    # Shipping is free across India on every prepaid order (owner decision);
+    # the copy below is the single sentence every template uses.
+    "shipping_note": "Free shipping across India on all orders",
     "dispatch_days": "2–4 working days",
     "theme_color": _css_token("cream"),
 }

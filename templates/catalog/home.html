@@ -11,7 +11,7 @@
       <a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--lg">Shop the drop</a>
       <a href="{% url 'catalog:shop_category' 'kaftans' %}" class="btn btn--ghost btn--lg">Start with a kaftan</a>
     </div>
-    <p class="hero__note reveal reveal--3">₹1,000–5,000 · Free shipping over ₹1,999 · {{ product_count }} styles live right now</p>
+    <p class="hero__note reveal reveal--3">₹1,000–5,000 · Free shipping across India · {{ product_count }} styles live right now</p>
   </div>
   <div class="hero__art reveal reveal--2">
     <img src="{% static 'img/editorial/hero.svg' %}" alt="A striped kaftan in front of a cream sun over blue waves" width="1000" height="1200" fetchpriority="high">
@@ -94,7 +94,7 @@
     <div class="promise">
       <span class="promise__num">03</span>
       <h3 class="display display--sm">Prepaid, packed, gone</h3>
-      <p>UPI, cards, net banking. Dispatched from Bengaluru in {{ store.dispatch_days }}. Free shipping over ₹1,999.</p>
+      <p>UPI, cards, net banking. Dispatched from Bengaluru in {{ store.dispatch_days }}. {{ store.shipping_note }}.</p>
     </div>
   </div>
 </section>

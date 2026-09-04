@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from catalog.models import Variant
 
-from .pricing import free_shipping_gap, shipping_for
+from .pricing import shipping_for
 
 SESSION_KEY = "bag"
 MAX_PER_LINE = 5
@@ -132,7 +132,3 @@ class Bag:
     @property
     def total_inr(self):
         return self.subtotal_inr + self.shipping_inr
-
-    @property
-    def free_shipping_gap_inr(self):
-        return free_shipping_gap(self.subtotal_inr)

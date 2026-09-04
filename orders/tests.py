@@ -200,11 +200,36 @@ class BagTests(TestCase):
 
 
 class PricingTests(TestCase):
-    def test_shipping_threshold(self):
-        self.assertEqual(shipping_for(0), 0)
-        self.assertEqual(shipping_for(1998), 79)
-        self.assertEqual(shipping_for(1999), 0)
-        self.assertEqual(shipping_for(4999), 0)
+    def test_shipping_is_free_on_every_prepaid_order(self):
+        """Owner decision 7b: no fee, no threshold."""
+        for subtotal in (0, 100, 1998, 1999, 10000):
+            self.assertEqual(shipping_for(subtotal), 0, subtotal)
+        self.assertNotIn("free_shipping_over_inr", settings.STORE)
+        self.assertNotIn("shipping_flat_inr", settings.STORE)
+
+    def test_bag_totals_carry_no_shipping_for_small_or_large_carts(self):
+        cheap = make_product(slug="cheap", price=100, sizes={"S": 5})
+        dear = make_product(slug="dear", price=5000, sizes={"S": 5})
+        bag = Bag(self.client.session)
+        bag.add(cheap.variants.get(), 1)
+        self.assertEqual((bag.subtotal_inr, bag.shipping_inr, bag.total_inr), (100, 0, 100))
+        bag.add(dear.variants.get(), 2)
+        self.assertEqual((bag.subtotal_inr, bag.shipping_inr, bag.total_inr), (10100, 0, 10100))
+
+    def test_no_threshold_copy_survives_anywhere(self):
+        product = make_product(price=1500)
+        self.client.post(reverse("orders:bag_add"), {"variant": product.variants.get(size="S").pk})
+        pages = [reverse(n) for n in ("catalog:home", "catalog:shop", "orders:bag", "orders:checkout", "support:shipping_returns", "support:faq")]
+        pages.append(product.get_absolute_url())
+        for url in pages:
+            with self.subTest(url=url):
+                r = self.client.get(url)
+                html = r.content.decode()
+                self.assertNotIn("1,999", html)
+                self.assertNotIn("₹79", html)
+                self.assertNotIn("shipping over", html.lower())
+        self.assertContains(self.client.get(reverse("catalog:home")), "Free shipping across India")
+        self.assertContains(self.client.get(reverse("orders:bag")), "Shipping's on us")
 
 
 @override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
@@ -234,8 +259,8 @@ class CheckoutTests(TestCase):
         self.assertEqual(order.status, "pending")
         self.assertEqual(order.order_number, f"BNB-{1000 + order.pk}")
         self.assertEqual(order.subtotal_inr, 1500)
-        self.assertEqual(order.shipping_inr, 79)
-        self.assertEqual(order.total_inr, 1579)
+        self.assertEqual(order.shipping_inr, 0)
+        self.assertEqual(order.total_inr, 1500)
         self.assertTrue(order.razorpay_order_id.startswith("order_sbx_"))
         item = order.items.get()
         self.assertEqual((item.product_name, item.size, item.unit_price_inr, item.quantity), ("Tester", "S", 1500, 1))

@@ -5,11 +5,11 @@
 <section class="wrap page-head">
   <p class="eyebrow">Policy</p>
   <h1 class="display display--xl">Shipping &amp; exchanges</h1>
-  <p class="lede">Short version: free shipping over ₹{{ store.free_shipping_over_inr|intcomma }}, dispatch in {{ store.dispatch_days }}, exchanges within 7 days, refunds only for defects.</p>
+  <p class="lede">Short version: free shipping across India on all orders, dispatch in {{ store.dispatch_days }}, exchanges within 7 days, refunds only for defects.</p>
 </section>
 <section class="wrap prose prose--narrow">
   <h2 class="display display--md">Shipping</h2>
-  <p>Orders are packed at our Bengaluru studio and dispatched within {{ store.dispatch_days }} of payment. Shipping is free on orders of ₹{{ store.free_shipping_over_inr|intcomma }} and above, and ₹{{ store.shipping_flat_inr }} below that.</p>
+  <p>Orders are packed at our Bengaluru studio and dispatched within {{ store.dispatch_days }} of payment. Shipping is free across India on every order, whatever the size.</p>
   <p>Delivery usually takes 2–3 days to metros and 4–7 days elsewhere in India after dispatch. We'll add the courier and tracking number to your order the day it leaves; find it on the <a href="{% url 'orders:track' %}">Track</a> page. We don't ship outside India yet.</p>
   <p>Hostel or PG? Put the gate timings or the warden's name in the note at checkout and we pass it to the courier.</p>
   <h2 class="display display--md">Payment</h2>

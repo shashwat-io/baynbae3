@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render
 from django.templatetags.static import static
 
 from .models import Category, Product, Variant
-from .sizes import SIZE_CHART
+from .sizes import SIZE_GUIDE, SIZE_GUIDE_COLUMNS
 
 SORTS = {
     "new": ("Newest", ["-sort_weight", "-created_at"]),
@@ -111,7 +111,7 @@ def about(request):
 
 
 def size_guide(request):
-    return render(request, "catalog/size_guide.html", {"chart": SIZE_CHART})
+    return render(request, "catalog/size_guide.html", {"columns": SIZE_GUIDE_COLUMNS, "chart": SIZE_GUIDE})
 
 
 def not_found(request, exception=None):

@@ -468,3 +468,38 @@ class RupeesFilterTests(TestCase):
         for path in (settings.BASE_DIR / "templates").rglob("*.html"):
             self.assertNotIn("intcomma", path.read_text(), path)
             self.assertNotIn("humanize", path.read_text(), path)
+
+
+class SizeGuideTests(TestCase):
+    """
+    PROJECT.md S17: the chart is cm only, XS-XL, and every measurement cell is
+    an owner placeholder until the owner supplies numbers. The figures that
+    were there before were invented, and in inches.
+    """
+
+    def setUp(self):
+        self.html = self.client.get(reverse("catalog:size_guide")).content.decode()
+        self.table = self.html.split("<table")[1].split("</table>")[0]
+
+    def test_every_measurement_cell_is_an_owner_placeholder(self):
+        from catalog.sizes import FITTED_SIZES, SIZE_GUIDE_COLUMNS
+
+        for size in FITTED_SIZES:
+            for column in SIZE_GUIDE_COLUMNS:
+                with self.subTest(size=size, column=column):
+                    self.assertIn(f'<mark class="todo">[OWNER: {size} {column.lower()} in cm]</mark>', self.table)
+        # No measurement survives as a number anywhere in the table.
+        self.assertNotRegex(self.table.replace("todo", ""), r"\d")
+
+    def test_chart_is_centimetres_and_has_no_invented_uk_column(self):
+        for column in ("Bust", "Waist", "Hip", "Length"):
+            self.assertIn(f"<th>{column} (cm)</th>", self.table)
+        self.assertNotIn("(in)", self.table)
+        self.assertNotIn("<th>UK</th>", self.table)
+        self.assertNotIn("UK 6", self.html)
+
+    def test_one_size_fit_claims_are_placeholders_not_invented_measurements(self):
+        self.assertIn('[OWNER: one-size kaftan measurements in cm]', self.html)
+        self.assertIn('[OWNER: cover-up lengths in cm]', self.html)
+        self.assertNotIn("60 inches", self.html)
+        self.assertNotIn("120 to 124", self.html)

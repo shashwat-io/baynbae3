@@ -1,6 +1,8 @@
+from django.contrib.staticfiles import finders
 from django.db.models import Prefetch
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.templatetags.static import static
 
 from .models import Category, Product, Variant
 from .sizes import SIZE_CHART
@@ -14,6 +16,25 @@ SORTS = {
 
 def live_products():
     return Product.objects.live().prefetch_related("variants", "images")
+
+
+INSTAGRAM_TILE_COUNT = 6
+
+
+def instagram_tiles():
+    """
+    Resolved URLs for the home-page Instagram strip. Each path is built in
+    full before it reaches `static()`, because the manifest storage used in
+    production can only hash a complete filename; and only files that exist
+    on disk are rendered, so a missing tile drops out instead of breaking
+    the page.
+    """
+    urls = []
+    for i in range(1, INSTAGRAM_TILE_COUNT + 1):
+        path = f"img/editorial/ig-{i}.svg"
+        if finders.find(path):
+            urls.append(static(path))
+    return urls
 
 
 def home(request):
@@ -32,6 +53,7 @@ def home(request):
             "kaftans": kaftans,
             "categories": Category.all(),
             "product_count": len(products),
+            "ig_tiles": instagram_tiles(),
         },
     )
 

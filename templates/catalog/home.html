@@ -105,9 +105,9 @@
     <a href="https://instagram.com/{{ store.instagram }}" class="link-arrow" rel="noopener">Follow along</a>
   </div>
   <div class="ig__grid">
-    {% for i in "123456" %}
+    {% for url in ig_tiles %}
     <a href="https://instagram.com/{{ store.instagram }}" rel="noopener" class="ig__tile" aria-label="Bay'n Bae on Instagram">
-      <img src="{% static 'img/editorial/ig-' %}{{ i }}.svg" alt="" width="600" height="600" loading="lazy">
+      <img src="{{ url }}" alt="" width="600" height="600" loading="lazy">
     </a>
     {% endfor %}
   </div>

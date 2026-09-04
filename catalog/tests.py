@@ -1,9 +1,19 @@
+import shutil
+import tempfile
+from pathlib import Path
+
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
+
+from orders.tests import ADDRESS
 
 from .models import Product, ProductImage, Variant
 from .seed_data import PRODUCTS
+
+# A scratch STATIC_ROOT for the production-mode render tests. Created once per
+# process; the tests below clear it when they finish.
+SCRATCH_STATIC_ROOT = Path(tempfile.mkdtemp(prefix="baynbae-static-"))
 
 
 def make(slug, live=True, sizes=None, **kw):
@@ -114,3 +124,87 @@ class SeedTests(TestCase):
         self.assertEqual(Variant.objects.get(pk=v.pk).stock, 0)
         call_command("seed_catalog", "--reset-stock", verbosity=0)
         self.assertGreater(Variant.objects.get(pk=v.pk).stock, 0)
+
+
+@override_settings(
+    DEBUG=False,
+    STATIC_ROOT=SCRATCH_STATIC_ROOT,
+    STORAGES={"staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}},
+    RAZORPAY_SANDBOX=True,
+    RAZORPAY_KEY_ID="",
+    RAZORPAY_KEY_SECRET="",
+)
+class ProductionRenderTests(TestCase):
+    """
+    Every route renders with the hashed-manifest static storage that production
+    uses. A `{% static %}` on a path the manifest does not know raises, so this
+    is the test that catches a DEBUG=false-only 500 (audit HIGH: home page).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        call_command("collectstatic", interactive=False, verbosity=0, clear=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(SCRATCH_STATIC_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        # Product images must be real files: the manifest rejects anything else.
+        self.product = Product.objects.create(
+            name="Sundowner Kaftan", slug="sundowner-kaftan", category="kaftans", price_inr=2499,
+            tagline="t", description="d", print_name="p", fabric="cotton", is_live=True, is_featured=True,
+        )
+        self.variant = Variant.objects.create(product=self.product, size="FREE", stock=5)
+        for n in (1, 2):
+            ProductImage.objects.create(product=self.product, filename=f"sundowner-kaftan-{n}.svg", alt="a", sort_order=n)
+
+    def assert_renders(self, url, status=200):
+        with self.subTest(url=url):
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, status, url)
+
+    def test_home_renders_with_manifest_storage(self):
+        r = self.client.get(reverse("catalog:home"))
+        self.assertEqual(r.status_code, 200)
+        # all six tiles resolve to hashed files
+        self.assertEqual(r.content.decode().count('class="ig__tile"'), 6)
+        self.assertRegex(r.content.decode(), r"img/editorial/ig-1\.[0-9a-f]{12}\.svg")
+
+    def test_home_skips_instagram_tiles_that_do_not_exist(self):
+        from catalog.views import instagram_tiles
+
+        with override_settings(STATICFILES_DIRS=[]):
+            self.assertEqual(instagram_tiles(), [])
+
+    def test_shop_product_and_error_pages_render(self):
+        for url in (
+            reverse("catalog:shop"),
+            reverse("catalog:shop_category", args=["kaftans"]),
+            reverse("catalog:shop") + "?sort=low&size=FREE",
+            self.product.get_absolute_url(),
+        ):
+            self.assert_renders(url)
+        self.assert_renders("/definitely-not-here/", status=404)
+
+    def test_bag_checkout_pay_and_track_render(self):
+        self.assert_renders(reverse("orders:bag"))
+        self.client.post(reverse("orders:bag_add"), {"variant": self.variant.pk})
+        self.assert_renders(reverse("orders:bag"))
+        self.assert_renders(reverse("orders:checkout"))
+        self.client.post(reverse("orders:checkout"), ADDRESS)
+        from orders.models import Order
+
+        order = Order.objects.get()
+        self.assert_renders(reverse("orders:pay", args=[order.token]))
+        self.assert_renders(reverse("orders:track"))
+        self.assert_renders(reverse("orders:track") + f"?order_number={order.order_number}&contact={ADDRESS['email']}")
+
+    def test_every_footer_page_renders(self):
+        for name in (
+            "catalog:about", "catalog:size_guide", "support:faq", "support:contact",
+            "support:shipping_returns", "support:privacy", "support:terms", "orders:track",
+        ):
+            self.assert_renders(reverse(name))

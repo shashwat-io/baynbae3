@@ -1,7 +1,8 @@
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.templatetags.static import static
 from django.urls import reverse
+
+from .images import image_url
 
 from .sizes import SIZE_CHOICES, SIZE_ORDER, size_label
 
@@ -40,7 +41,7 @@ class Category(models.Model):
 
     @property
     def image_url(self):
-        return static(f"img/editorial/{self.image}") if self.image else ""
+        return image_url(f"img/editorial/{self.image}") if self.image else ""
 
     @property
     def short_name(self):
@@ -171,4 +172,4 @@ class ProductImage(models.Model):
 
     @property
     def url(self):
-        return static(f"img/products/{self.filename}")
+        return image_url(f"img/products/{self.filename}")

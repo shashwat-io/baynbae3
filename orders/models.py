@@ -3,10 +3,10 @@ import logging
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import F
-from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 
+from catalog.images import image_url
 from catalog.models import Product, Variant
 
 log = logging.getLogger(__name__)
@@ -179,4 +179,4 @@ class OrderItem(models.Model):
 
     @property
     def image_url(self):
-        return static(f"img/products/{self.image_filename}") if self.image_filename else ""
+        return image_url(f"img/products/{self.image_filename}") if self.image_filename else ""

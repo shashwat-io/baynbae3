@@ -273,6 +273,42 @@ class ProductionRenderTests(TestCase):
         ):
             self.assert_renders(reverse(name))
 
+    def test_missing_image_files_fall_back_to_the_placeholder(self):
+        """A typo in an admin-typed filename must never 500 a page (audit HIGH)."""
+        ProductImage.objects.filter(product=self.product).update(filename="typo-that-does-not-exist.svg")
+        Category.objects.filter(slug="kaftans").update(image="typo-that-does-not-exist.svg")
+        placeholder = re.compile(r"img/placeholder\.[0-9a-f]{12}\.svg")
+        for url in (reverse("catalog:home"), reverse("catalog:shop"), self.product.get_absolute_url()):
+            with self.subTest(url=url):
+                r = self.client.get(url)
+                self.assertEqual(r.status_code, 200, url)
+                html = r.content.decode()
+                self.assertRegex(html, placeholder)
+                self.assertNotIn("typo-that-does-not-exist", html)
+
+    def test_order_item_with_missing_image_file_renders_the_placeholder(self):
+        from orders.models import Order, OrderItem
+
+        self.client.post(reverse("orders:bag_add"), {"variant": self.variant.pk})
+        self.client.post(reverse("orders:checkout"), ADDRESS)
+        order = Order.objects.get()
+        OrderItem.objects.filter(order=order).update(image_filename="typo-that-does-not-exist.svg")
+        r = self.client.get(reverse("orders:pay", args=[order.order_number]))
+        self.assertEqual(r.status_code, 200)
+        self.assertRegex(r.content.decode(), r"img/placeholder\.[0-9a-f]{12}\.svg")
+
+
+class ImageUrlTests(TestCase):
+    """`image_url` in development: finders decide, the placeholder covers a miss."""
+
+    @override_settings(DEBUG=True)
+    def test_existing_file_resolves_and_missing_file_falls_back(self):
+        from catalog.images import image_url
+
+        self.assertEqual(image_url("img/editorial/hero.svg"), "/static/img/editorial/hero.svg")
+        self.assertEqual(image_url("img/products/nope.svg"), "/static/img/placeholder.svg")
+        self.assertEqual(image_url(""), "/static/img/placeholder.svg")
+
 
 # ---------------------------------------------------------------- 7c: categories
 class CategoryMigrationTests(TransactionTestCase):

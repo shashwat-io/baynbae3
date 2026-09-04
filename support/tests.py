@@ -70,16 +70,29 @@ class BrandFactTests(TestCase):
         urls.append(reverse("orders:pay", args=[Order.objects.get().order_number]))
         return urls
 
-    def test_no_invented_fact_renders_on_any_page(self):
+    def test_the_named_invented_facts_stay_gone(self):
+        """
+        A denylist of the specific claims this pass removed — it is a
+        regression guard, not proof that every fact on the site is verified.
+        Unverified copy the owner still has to confirm (fabric compositions and
+        GSM on product pages, the size chart, batch numbers, studio hours) is
+        NOT covered here.
+        """
         for url in self.every_page():
             with self.subTest(url=url):
                 r = self.client.get(url)
                 self.assertEqual(r.status_code, 200)
-                # A product legitimately priced at ₹1,999 renders as "₹ 1,999" (rupees filter);
-                # the threshold copy the audit flagged never carried that space.
-                html = r.content.decode().replace("₹ 1,999", "")
+                html = r.content.decode()
                 for word in FORBIDDEN:
-                    self.assertNotIn(word, html)
+                    if word == "1,999":
+                        # A product may legitimately cost ₹1,999. The rupees filter always
+                        # emits "₹ 1,999" with a space; the removed threshold copy never did.
+                        self.assertEqual(
+                            html.count("1,999"), html.count("₹ 1,999"),
+                            "a '1,999' that is not a rendered price is threshold copy",
+                        )
+                    else:
+                        self.assertNotIn(word, html)
 
     def test_locked_shipping_copy_on_every_surface(self):
         self.client.post(reverse("orders:bag_add"), {"variant": self.product.variants.first().pk})

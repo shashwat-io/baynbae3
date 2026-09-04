@@ -32,7 +32,7 @@
     <p>{% if store.support_whatsapp %}<a href="https://wa.me/{{ store.support_whatsapp }}">WhatsApp us</a>{% else %}{% owner "phone/WhatsApp number" %}{% endif %}</p>
     <p>{% owner "business address" %}</p>
     <p><a href="https://instagram.com/{{ store.instagram }}" rel="noopener">@{{ store.instagram }}</a> on Instagram, DMs open.</p>
-    <p class="muted">Studio hours: Mon–Sat, 10am–6pm IST. We're a small team; if it's Sunday, we're probably at the beach testing product.</p>
+    <p class="muted">Studio hours: {% owner "studio hours and days" %}. We're a small team; if it's a weekend, we're probably at the beach testing product.</p>
   </aside>
 </section>
 {% endblock %}

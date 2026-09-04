@@ -38,7 +38,12 @@ from orders.tests import ADDRESS, load_settings  # noqa: E402
 # Phrases that must not reappear anywhere. "over ₹" catches a shipping threshold
 # in any form, spaced or not, which a bare "1,999" does not: a product may
 # legitimately cost that much.
-FORBIDDEN = ("Bengaluru", "Erode", "Bhiwandi", "over ₹", "7 days")
+FORBIDDEN = (
+    "Bengaluru", "Erode", "Bhiwandi", "over ₹", "7 days",
+    # Invented figures with no owner behind them: a market price claim, a
+    # price band, a specific batch number, studio hours, refund turnaround.
+    "₹9,000", "₹1,000–5,000", "1,000 and ₹5,000", "OF ✦ 14", "Mon–Sat", "5–7 working days",
+)
 SHIPPING = "Free shipping across India on all prepaid orders."
 PLACEHOLDER = '<mark class="todo">[OWNER: {}]</mark>'
 
@@ -131,6 +136,24 @@ class BrandFactTests(TestCase):
                 for fact in facts:
                     self.assertIn(PLACEHOLDER.format(fact), html)
         self.assertIn(PLACEHOLDER.format("dispatch window"), self.client.get(self.product.get_absolute_url()).content.decode())
+
+    def test_unverified_figures_are_placeholders_on_the_pages_that_carried_them(self):
+        for name, fact in (
+            ("catalog:home", "price range"),
+            ("catalog:about", "price range"),
+            ("support:contact", "studio hours and days"),
+            ("support:shipping_returns", "refund turnaround"),
+        ):
+            with self.subTest(page=name):
+                self.assertIn(PLACEHOLDER.format(fact), self.client.get(reverse(name)).content.decode())
+
+    def test_payment_failed_page_has_no_invented_refund_timing(self):
+        # Not reachable by GET without a failed order, so it is checked directly.
+        from django.template.loader import render_to_string
+
+        html = render_to_string("orders/payment_failed.html", {"order": Order.objects.create(subtotal_inr=100, shipping_inr=0, total_inr=100)})
+        self.assertIn(PLACEHOLDER.format("refund turnaround"), html)
+        self.assertNotIn("5–7 working days", html)
 
     def test_blank_support_email_renders_placeholder_not_env_fallback(self):
         # settings: no default address is baked in

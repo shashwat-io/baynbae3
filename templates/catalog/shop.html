@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load money %}
 {% block title %}{% if category %}{{ category.name }}{% else %}Shop all{% endif %} — {{ store.name }}{% endblock %}
-{% block meta_description %}{% if category %}{{ category.blurb }}{% else %}Every kaftan, cover-up, dress, co-ord and shorts set we have live right now. Small batches, ₹1,000–5,000.{% endif %}{% endblock %}
+{% block meta_description %}{% if category %}{{ category.blurb }}{% else %}Every kaftan, cover-up, dress, co-ord and shorts set we have live right now, cut in small batches.{% endif %}{% endblock %}
 {% block content %}
 <section class="wrap shop-head">
   <p class="eyebrow">{% if category %}<a href="{% url 'catalog:shop' %}">Shop</a> / {{ category.name }}{% else %}Everything we have live{% endif %}</p>

@@ -11,11 +11,11 @@
       <a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--lg">Shop the drop</a>
       {% if kaftan_category %}<a href="{{ kaftan_category.url }}" class="btn btn--ghost btn--lg">Start with a kaftan</a>{% endif %}
     </div>
-    <p class="hero__note reveal reveal--3">{{ store.shipping_note }} ₹1,000–5,000, {{ product_count }} styles live right now.</p>
+    <p class="hero__note reveal reveal--3">{{ store.shipping_note }} {% owner "price range" %}, {{ product_count }} styles live right now.</p>
   </div>
   <div class="hero__art reveal reveal--2">
     <img src="{% static 'img/editorial/hero.svg' %}" alt="A striped kaftan in front of a cream sun over blue waves" width="1000" height="1200" fetchpriority="high">
-    <span class="hero__stamp" aria-hidden="true"><span>BATCH ✦ OF ✦ 14 ✦ </span></span>
+    <span class="hero__stamp" aria-hidden="true"><span>BAY'N ✦ BAE ✦ </span></span>
   </div>
 </section>
 
@@ -51,7 +51,7 @@
   <div class="manifesto__copy">
     <p class="eyebrow eyebrow--cream">Why we exist</p>
     <h2 class="display display--lg">Resort wear that doesn't need a resort.</h2>
-    <p>We started Bay'n Bae because the good kaftans were all ₹9,000 and the cheap ones went see-through in one wash. So we cut our own. Small batches, made in India, cut in runs of 10–20, and priced so a student can buy one without a bank loan. {% owner "sourcing story — real fabric origin and process" %}</p>
+    <p>We started Bay'n Bae because the good kaftans cost more than the trip and the cheap ones went see-through in one wash. So we cut our own. Small batches, made in India, cut in runs of 10–20, and priced so a student can buy one without a bank loan. {% owner "sourcing story — real fabric origin and process" %}</p>
     <p>Wear them to Goa. Wear them to Gokarna. Wear them to your 9am and tell everyone you're going somewhere later.</p>
     <a href="{% url 'catalog:about' %}" class="btn btn--cream">The whole story</a>
   </div>

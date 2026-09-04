@@ -10,6 +10,6 @@
     <a href="{% url 'orders:pay' order.order_number %}" class="btn btn--primary btn--lg">Try paying again</a>
     <a href="{% url 'orders:bag' %}" class="btn btn--ghost btn--lg">Back to bag</a>
   </div>
-  <p class="summary__fine">If money left your account, it comes back within 5–7 working days automatically. <a href="{% url 'support:contact' %}?order={{ order.order_number }}">Tell us</a> and we'll chase it.</p>
+  <p class="summary__fine">If money left your account, it comes back automatically within {% owner "refund turnaround" %}. <a href="{% url 'support:contact' %}?order={{ order.order_number }}">Tell us</a> and we'll chase it.</p>
 </section>
 {% endblock %}

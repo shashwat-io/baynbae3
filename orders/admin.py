@@ -41,16 +41,12 @@ class OrderAdmin(admin.ModelAdmin):
         ("Money", {"fields": ("subtotal_inr", "shipping_inr", "total_inr", "razorpay_order_id", "razorpay_payment_id")}),
     )
 
+    class Media:
+        css = {"all": ("css/admin.css",)}
+
     @admin.display(description="status", ordering="status")
     def status_badge(self, obj):
-        colours = {
-            "pending": "#8a8a8a", "paid": "#3B63FF", "packed": "#1f8a5b", "shipped": "#1f8a5b",
-            "delivered": "#2c2c2c", "payment_failed": "#c0392b", "abandoned": "#aaa", "refunded": "#c0392b",
-        }
-        return format_html(
-            '<span style="padding:2px 8px;border-radius:99px;background:{};color:#fff;font-size:11px">{}</span>',
-            colours.get(obj.status, "#999"), obj.get_status_display(),
-        )
+        return format_html('<span class="status-badge status-badge--{}">{}</span>', obj.status, obj.get_status_display())
 
     @admin.display(description="")
     def flag(self, obj):

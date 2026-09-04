@@ -134,6 +134,21 @@ if not DEBUG:
     SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 # ---------------------------------------------------------------- storefront
+def _css_token(name):
+    """
+    Read one colour token out of the stylesheet's :root block, so the few
+    places outside CSS that need a brand colour (the theme-color meta tag)
+    share the single source of truth instead of repeating the hex.
+    """
+    import re
+
+    css = (BASE_DIR / "static" / "css" / "site.css").read_text()
+    match = re.search(r"--%s:\s*(#[0-9A-Fa-f]{3,6})\s*;" % re.escape(name), css)
+    if not match:
+        raise ImproperlyConfigured(f"static/css/site.css defines no --{name} token.")
+    return match.group(1)
+
+
 STORE = {
     "name": "Bay'n Bae",
     "tagline": "Resort wear for the ones who never quite left the beach.",
@@ -143,6 +158,7 @@ STORE = {
     "free_shipping_over_inr": 1999,
     "shipping_flat_inr": 79,
     "dispatch_days": "2–4 working days",
+    "theme_color": _css_token("cream"),
 }
 
 # ------------------------------------------------------------------ razorpay

@@ -1,7 +1,9 @@
+import re
 import shutil
 import tempfile
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -100,6 +102,51 @@ class ViewTests(TestCase):
         for name in ("catalog:about", "catalog:size_guide", "sitemap", "robots"):
             self.assertEqual(self.client.get(reverse(name)).status_code, 200)
         self.assertEqual(self.client.get("/definitely-not-here/").status_code, 404)
+
+
+HEX = re.compile(r"#[0-9a-fA-F]{3,6}\b")
+ENCODED_HEX = re.compile(r"%23[0-9a-fA-F]{3,6}\b")
+
+
+def outside_root_and_font_face(css):
+    css = re.sub(r"@font-face\s*\{[^}]*\}", "", css)
+    return re.sub(r":root\s*\{[^}]*\}", "", css)
+
+
+class StyleSheetTests(TestCase):
+    """Every colour lives in the :root block; nothing below it uses a raw hex value."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.site = (settings.BASE_DIR / "static" / "css" / "site.css").read_text()
+        cls.admin = (settings.BASE_DIR / "static" / "css" / "admin.css").read_text()
+
+    def test_no_raw_hex_below_root_in_site_css(self):
+        body = outside_root_and_font_face(self.site)
+        self.assertEqual(HEX.findall(body), [])
+        self.assertEqual(ENCODED_HEX.findall(body), [], "hex hidden inside a data: URI")
+
+    def test_no_raw_hex_below_root_in_admin_css(self):
+        body = outside_root_and_font_face(self.admin)
+        self.assertEqual(HEX.findall(body), [])
+
+    def test_new_tokens_carry_the_project_values(self):
+        root = re.search(r":root\s*\{[^}]*\}", self.site).group(0)
+        for token in ("--blue-hover: #2E4FD6;", "--surface: #FFFFFF;", "--error: #C4342B;", "--blue: #3B63FF;", "--cream: #F6F5EA;"):
+            self.assertIn(token, root)
+
+    def test_select_caret_is_a_static_file_not_a_data_uri(self):
+        self.assertNotIn("data:image", self.site)
+        self.assertIn('url("../img/select-caret.svg")', self.site)
+        self.assertTrue((settings.BASE_DIR / "static" / "img" / "select-caret.svg").exists())
+
+    def test_theme_color_reads_the_cream_token(self):
+        cream = re.search(r"--cream:\s*(#[0-9A-Fa-f]{6});", self.site).group(1)
+        self.assertEqual(settings.STORE["theme_color"], cream)
+        r = self.client.get(reverse("catalog:home"))
+        self.assertContains(r, f'<meta name="theme-color" content="{cream}">')
+        self.assertNotContains(r, 'content="#F6F5EA">' if cream != "#F6F5EA" else "never-present")
 
 
 class SeedTests(TestCase):

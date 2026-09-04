@@ -12,6 +12,9 @@
   --blue: #3B63FF;
   --cream: #F6F5EA;
   --ink: #17224d;               /* body copy: same hue family as the blue, darker for long reads */
+  --blue-hover: #2E4FD6;        /* pressed/hovered primary */
+  --surface: #FFFFFF;           /* form fields */
+  --error: #C4342B;             /* validation copy and borders */
   --blue-90: rgba(59, 99, 255, .9);
   --blue-60: rgba(59, 99, 255, .6);
   --blue-30: rgba(59, 99, 255, .3);
@@ -85,7 +88,7 @@ strong { font-weight: 700; }
 .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .btn:active { transform: translateY(0); }
 .btn--primary { background: var(--blue); color: var(--cream); }
-.btn--primary:hover { background: #2f52e0; }
+.btn--primary:hover { background: var(--blue-hover); }
 .btn--ghost { background: transparent; }
 .btn--ghost:hover { background: var(--blue-08); }
 .btn--cream { background: var(--cream); color: var(--blue); border-color: var(--cream); }
@@ -268,7 +271,7 @@ strong { font-weight: 700; }
 .chip:hover { border-color: var(--blue); text-decoration: none; color: var(--blue); }
 .chip.is-active { background: var(--blue); color: var(--cream); border-color: var(--blue); }
 .filter-form { display: flex; gap: 8px; align-items: center; }
-.select select { appearance: none; -webkit-appearance: none; padding: 9px 34px 9px 14px; border-radius: 999px; border: 1.5px solid var(--blue-30); background: var(--cream) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%233B63FF' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center; font-size: .92rem; color: var(--ink); }
+.select select { appearance: none; -webkit-appearance: none; padding: 9px 34px 9px 14px; border-radius: 999px; border: 1.5px solid var(--blue-30); background: var(--cream) url("../img/select-caret.svg") no-repeat right 14px center; font-size: .92rem; color: var(--ink); }
 .empty { text-align: center; padding-block: clamp(40px, 8vw, 90px); display: grid; gap: 18px; justify-items: center; }
 .empty p { max-width: 46ch; }
 
@@ -362,12 +365,12 @@ strong { font-weight: 700; }
 @media (min-width: 640px) { .fields__row { grid-template-columns: 1fr 1fr; } }
 .field { display: grid; gap: 6px; }
 .field label { font-weight: 700; font-size: .92rem; }
-.field input, .field select, .field textarea { width: 100%; padding: 13px 14px; border-radius: 10px; border: 1.5px solid var(--blue-30); background: #fff; transition: border-color .2s, box-shadow .2s; }
+.field input, .field select, .field textarea { width: 100%; padding: 13px 14px; border-radius: 10px; border: 1.5px solid var(--blue-30); background: var(--surface); transition: border-color .2s, box-shadow .2s; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-15); }
-.field select { appearance: none; -webkit-appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%233B63FF' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center; }
+.field select { appearance: none; -webkit-appearance: none; background: var(--surface) url("../img/select-caret.svg") no-repeat right 14px center; }
 .field__help { font-size: .8rem; color: var(--blue-60); }
-.field__error, .form-error { font-size: .85rem; color: #c0392b; font-weight: 500; }
-.has-error input, .has-error select, .has-error textarea { border-color: #c0392b; }
+.field__error, .form-error { font-size: .85rem; color: var(--error); font-weight: 500; }
+.has-error input, .has-error select, .has-error textarea { border-color: var(--error); }
 .track-form { align-self: start; }
 
 /* ---------- pay / confirm ---------------------------------------------- */

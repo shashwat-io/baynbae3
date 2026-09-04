@@ -532,6 +532,15 @@ class AdminTests(TestCase):
         self.assertEqual(self.client.get("/admin/orders/order/").status_code, 200)
         self.assertEqual(self.client.get(f"/admin/orders/order/{self.order.pk}/change/").status_code, 200)
 
+    def test_status_badge_uses_a_stylesheet_class_not_inline_colour(self):
+        r = self.client.get("/admin/orders/order/")
+        html = r.content.decode()
+        self.assertIn('class="status-badge status-badge--paid"', html)
+        self.assertIn("css/admin.css", html)
+        badge = html[html.index("status-badge"):]
+        self.assertNotIn("style=", badge[: badge.index("</span>")])
+        self.assertNotRegex(badge[: badge.index("</span>")], r"#[0-9a-fA-F]{3,6}")
+
     def test_bulk_actions_follow_lifecycle(self):
         self.client.post("/admin/orders/order/", {"action": "mark_delivered", "_selected_action": [self.order.pk]})
         self.assertEqual(Order.objects.get().status, "paid")  # paid -> delivered is not allowed

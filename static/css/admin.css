@@ -1,0 +1,16 @@
+/* Bay'n Bae — Django admin additions. Colours live in the :root block only. */
+:root {
+  --blue: #3B63FF;
+  --cream: #F6F5EA;
+  --ink: #17224d;
+  --error: #C4342B;
+  --muted: #8a8a8a;
+  --success: #1f8a5b;
+}
+
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; color: var(--cream); font-size: 11px; background: var(--muted); }
+.status-badge--paid { background: var(--blue); }
+.status-badge--packed, .status-badge--shipped { background: var(--success); }
+.status-badge--delivered { background: var(--ink); }
+.status-badge--payment_failed, .status-badge--refunded { background: var(--error); }
+.status-badge--pending, .status-badge--abandoned { background: var(--muted); }

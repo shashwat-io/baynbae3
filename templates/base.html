@@ -11,7 +11,7 @@
 <meta property="og:description" content="{% block og_description %}Kaftans, cover-ups, resort dresses and sets, made in small batches in India.{% endblock %}">
 <meta property="og:image" content="{% block og_image %}{{ site_url }}{% static 'img/social-card.png' %}{% endblock %}">
 <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-<meta name="theme-color" content="#F6F5EA">
+<meta name="theme-color" content="{{ store.theme_color }}">
 <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
 <link rel="apple-touch-icon" href="{% static 'img/icon-512.png' %}">
 <link rel="preload" href="{% static 'fonts/koulen-v30-latin-regular.woff2' %}" as="font" type="font/woff2" crossorigin>

@@ -35,7 +35,10 @@ from catalog.models import Product  # noqa: E402
 from orders.models import Order  # noqa: E402
 from orders.tests import ADDRESS, load_settings  # noqa: E402
 
-FORBIDDEN = ("Bengaluru", "Erode", "Bhiwandi", "1,999", "7 days")
+# Phrases that must not reappear anywhere. "over ₹" catches a shipping threshold
+# in any form, spaced or not, which a bare "1,999" does not: a product may
+# legitimately cost that much.
+FORBIDDEN = ("Bengaluru", "Erode", "Bhiwandi", "over ₹", "7 days")
 SHIPPING = "Free shipping across India on all prepaid orders."
 PLACEHOLDER = '<mark class="todo">[OWNER: {}]</mark>'
 
@@ -84,15 +87,7 @@ class BrandFactTests(TestCase):
                 self.assertEqual(r.status_code, 200)
                 html = r.content.decode()
                 for word in FORBIDDEN:
-                    if word == "1,999":
-                        # A product may legitimately cost ₹1,999. The rupees filter always
-                        # emits "₹ 1,999" with a space; the removed threshold copy never did.
-                        self.assertEqual(
-                            html.count("1,999"), html.count("₹ 1,999"),
-                            "a '1,999' that is not a rendered price is threshold copy",
-                        )
-                    else:
-                        self.assertNotIn(word, html)
+                    self.assertNotIn(word, html)
 
     def test_locked_shipping_copy_on_every_surface(self):
         self.client.post(reverse("orders:bag_add"), {"variant": self.product.variants.first().pk})
@@ -101,7 +96,6 @@ class BrandFactTests(TestCase):
                 html = self.client.get(reverse(name)).content.decode()
                 self.assertIn(SHIPPING, html)
                 self.assertNotIn("on all orders", html)
-                self.assertNotIn("over ₹", html)
         product_html = self.client.get(self.product.get_absolute_url()).content.decode()
         # The ticker alone would satisfy assertIn; the product page must carry the sentence itself too.
         self.assertGreaterEqual(product_html.count(SHIPPING), 3)

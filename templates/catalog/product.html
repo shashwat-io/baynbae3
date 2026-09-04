@@ -66,7 +66,7 @@
     <ul class="pdp__facts">
       <li><strong>{{ product.print_name }}</strong> · {{ product.colourway }}</li>
       <li>One of <strong>{{ product.batch_size }}</strong> pieces in this batch</li>
-      <li>Ships from Bengaluru in {{ store.dispatch_days }}, shipping on us</li>
+      <li>Ships from {% owner "dispatch city" %} in {% owner "dispatch window" %}. {{ store.shipping_note }}</li>
     </ul>
 
     <div class="pdp__copy">
@@ -84,9 +84,9 @@
       <p>{{ product.care }}</p>
     </details>
     <details class="acc">
-      <summary>Shipping &amp; exchanges</summary>
-      <p>Prepaid only. {{ store.shipping_note }}. Dispatch in {{ store.dispatch_days }}, delivery in 2–7 days after that.</p>
-      <p>Size exchanges within 7 days of delivery, unworn with tags, subject to stock. <a href="{% url 'support:shipping_returns' %}">Full policy</a>.</p>
+      <summary>Shipping &amp; returns</summary>
+      <p>Prepaid only. {{ store.shipping_note }} Dispatch in {% owner "dispatch window" %}, delivery in {% owner "delivery window" %}.</p>
+      <p>Returns for defects only, reported within 3–5 days of delivery. <a href="{% url 'support:shipping_returns' %}">Full policy</a>.</p>
     </details>
   </div>
 </article>

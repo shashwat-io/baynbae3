@@ -11,7 +11,7 @@
       <a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--lg">Shop the drop</a>
       {% if kaftan_category %}<a href="{{ kaftan_category.url }}" class="btn btn--ghost btn--lg">Start with a kaftan</a>{% endif %}
     </div>
-    <p class="hero__note reveal reveal--3">₹1,000–5,000 · Free shipping across India · {{ product_count }} styles live right now</p>
+    <p class="hero__note reveal reveal--3">{{ store.shipping_note }} ₹1,000–5,000, {{ product_count }} styles live right now.</p>
   </div>
   <div class="hero__art reveal reveal--2">
     <img src="{% static 'img/editorial/hero.svg' %}" alt="A striped kaftan in front of a cream sun over blue waves" width="1000" height="1200" fetchpriority="high">
@@ -51,7 +51,7 @@
   <div class="manifesto__copy">
     <p class="eyebrow eyebrow--cream">Why we exist</p>
     <h2 class="display display--lg">Resort wear that doesn't need a resort.</h2>
-    <p>We started Bay'n Bae because the good kaftans were all ₹9,000 and the cheap ones went see-through in one wash. So we cut our own. Real cotton from Erode and Bhiwandi, screen-printed by hand, sewn in tiny runs in Bengaluru, and priced so a student can buy one without a bank loan.</p>
+    <p>We started Bay'n Bae because the good kaftans were all ₹9,000 and the cheap ones went see-through in one wash. So we cut our own. Small batches, made in India, cut in runs of 10–20, and priced so a student can buy one without a bank loan. {% owner "sourcing story — real fabric origin and process" %}</p>
     <p>Wear them to Goa. Wear them to Gokarna. Wear them to your 9am and tell everyone you're going somewhere later.</p>
     <a href="{% url 'catalog:about' %}" class="btn btn--cream">The whole story</a>
   </div>
@@ -94,7 +94,7 @@
     <div class="promise">
       <span class="promise__num">03</span>
       <h3 class="display display--sm">Prepaid, packed, gone</h3>
-      <p>UPI, cards, net banking. Dispatched from Bengaluru in {{ store.dispatch_days }}. {{ store.shipping_note }}.</p>
+      <p>UPI, cards, net banking. Dispatched from {% owner "dispatch city" %} in {% owner "dispatch window" %}. {{ store.shipping_note }}</p>
     </div>
   </div>
 </section>
@@ -127,8 +127,8 @@
       <p>No. Everything is prepaid through Razorpay. It's how we keep the prices where they are.</p>
     </details>
     <details class="faq">
-      <summary>Can I exchange a size?</summary>
-      <p>Yes, within 7 days of delivery, unworn with tags, as long as we still have the size. We arrange the pickup.</p>
+      <summary>Can I return something?</summary>
+      <p>Returns are for defects only. Tell us within 3–5 days of delivery and we'll replace it or refund you.</p>
     </details>
   </div>
   <a href="{% url 'support:faq' %}" class="link-arrow">All the answers</a>

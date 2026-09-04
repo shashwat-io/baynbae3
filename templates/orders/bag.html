@@ -46,7 +46,7 @@
       <div><dt>Shipping</dt><dd>{% if bag.shipping_inr %}{{ bag.shipping_inr|rupees }}{% else %}Free{% endif %}</dd></div>
       <div class="totals__total"><dt>Total</dt><dd>{{ bag.total_inr|rupees }}</dd></div>
     </dl>
-    <p class="summary__nudge summary__nudge--good">Shipping's on us, anywhere in India.</p>
+    <p class="summary__nudge summary__nudge--good">{{ store.shipping_note }}</p>
     <a href="{% url 'orders:checkout' %}" class="btn btn--primary btn--lg btn--block">Checkout</a>
     <p class="summary__fine">Prepaid via Razorpay. UPI, cards, net banking, wallets. No account needed.</p>
     <a href="{% url 'catalog:shop' %}" class="link-arrow">Keep looking</a>

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}About — {{ store.name }}{% endblock %}
-{% block meta_description %}Bay'n Bae is a small-batch resort-wear label from Bengaluru. Kaftans, cover-ups, dresses and sets in real cotton, cut ten to twenty at a time.{% endblock %}
+{% block meta_description %}Bay'n Bae is a small-batch resort-wear label made in India. Kaftans, cover-ups, dresses and sets, cut ten to twenty at a time.{% endblock %}
 {% block content %}
 <section class="wrap page-head">
   <p class="eyebrow">About</p>
-  <h1 class="display display--xl">Started on a<br>balcony in Bengaluru.</h1>
+  <h1 class="display display--xl">Started on a<br>balcony in {% owner "city where the label started" %}.</h1>
   <p class="lede">Two friends, one sewing machine, and a shared grievance: the nice kaftans cost more than the flight, and the cheap ones didn't survive the first wash.</p>
 </section>
 <div class="wrap">
@@ -17,9 +17,9 @@
   <div class="prose">
     <h2 class="display display--md">What we make</h2>
     <p>Resort wear, which is a fancy way of saying clothes for the good days. Kaftans you can throw on over a swimsuit or a hangover. Cover-ups that are honest about being sheer. Dresses that go from breakfast buffet to sunset bar. Co-ord and shorts sets that make you look like you packed properly.</p>
-    <p>Everything is cotton or a cotton blend, because it's 34 degrees and nobody needs polyester in their life. Prints are hand-screened in our two colours: a blue we argued about for three weeks and a cream we didn't.</p>
+    <p>Two colours on everything: a blue we argued about for three weeks and a cream we didn't. {% owner "sourcing story — real fabric origin and process" %}</p>
     <h2 class="display display--md">How we make it</h2>
-    <p>Small batches. Ten to twenty pieces per style, cut and sewn by a four-person unit in Bengaluru that we visit every week and pay properly. We don't do pre-orders and we don't restock most things. When it's gone, we cut something new.</p>
+    <p>Small batches. Ten to twenty pieces per style, made in India. {% owner "sourcing story — real fabric origin and process" %} We don't do pre-orders and we don't restock most things. When it's gone, we cut something new.</p>
     <p>Prices sit between ₹1,000 and ₹5,000, on purpose. We're for college students and first-job people, not for the resort boutique markup. Prepaid only, no cash on delivery, so we're not paying for a hundred returned parcels and passing it on to you.</p>
     <h2 class="display display--md">The name</h2>
     <p>Bay, as in the water. Bae, as in you. That's it. We're not going to pretend there's a deeper meaning; the domain was free.</p>
@@ -27,8 +27,7 @@
   <aside class="about-facts">
     <div class="fact"><span class="fact__num">10–20</span><span>pieces per style</span></div>
     <div class="fact"><span class="fact__num">2</span><span>colours, ever</span></div>
-    <div class="fact"><span class="fact__num">100%</span><span>cotton or cotton blends</span></div>
-    <div class="fact"><span class="fact__num">0</span><span>polyester, COD, or regrets</span></div>
+    <div class="fact"><span class="fact__num">0</span><span>cash on delivery, or regrets</span></div>
     <a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--block">Shop the current batch</a>
     <a href="https://instagram.com/{{ store.instagram }}" class="link-arrow" rel="noopener">Behind the scenes on Instagram</a>
   </aside>

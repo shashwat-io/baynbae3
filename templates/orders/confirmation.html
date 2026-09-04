@@ -20,7 +20,7 @@
     {% endif %}
     <div class="pay-address">
       <h3 class="display display--sm">What happens next</h3>
-      <p>We pack in {{ store.dispatch_days }} and add the courier and tracking number to this order. Check back with <a href="{% url 'orders:track' %}">Track</a> using your order number and email.</p>
+      <p>We pack in {% owner "dispatch window" %} and add the courier and tracking number to this order. Check back with <a href="{% url 'orders:track' %}">Track</a> using your order number and email.</p>
       <p>Wrong size? <a href="{% url 'support:contact' %}?order={{ order.order_number }}">Message us</a> in the next few hours and we'll swap it before it ships.</p>
     </div>
     <div class="pay-address">

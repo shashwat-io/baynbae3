@@ -4,7 +4,7 @@
 <section class="wrap page-head page-head--tight">
   <p class="eyebrow">Contact</p>
   <h1 class="display display--xl">Talk to a human.</h1>
-  <p class="lede">Order questions, exchanges, sizing, or you just want to tell us something. We reply within a working day, usually faster.</p>
+  <p class="lede">Order questions, returns, sizing, or you just want to tell us something. We reply within a working day, usually faster.</p>
 </section>
 <section class="wrap checkout">
   <form method="post" class="checkout__form" novalidate>
@@ -28,8 +28,9 @@
   </form>
   <aside class="summary summary--checkout">
     <h2 class="display display--sm">Other ways</h2>
-    <p><a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a></p>
-    {% if store.support_whatsapp %}<p><a href="https://wa.me/{{ store.support_whatsapp }}">WhatsApp us</a></p>{% endif %}
+    <p>{% include "partials/support_email.html" %}</p>
+    <p>{% if store.support_whatsapp %}<a href="https://wa.me/{{ store.support_whatsapp }}">WhatsApp us</a>{% else %}{% owner "phone/WhatsApp number" %}{% endif %}</p>
+    <p>{% owner "business address" %}</p>
     <p><a href="https://instagram.com/{{ store.instagram }}" rel="noopener">@{{ store.instagram }}</a> on Instagram, DMs open.</p>
     <p class="muted">Studio hours: Mon–Sat, 10am–6pm IST. We're a small team; if it's Sunday, we're probably at the beach testing product.</p>
   </aside>

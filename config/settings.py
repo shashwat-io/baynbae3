@@ -85,6 +85,8 @@ TEMPLATES = [
                 "catalog.context_processors.storefront",
                 "orders.context_processors.bag",
             ],
+            # `{% owner "…" %}` without a `{% load %}` in every template.
+            "builtins": ["catalog.templatetags.owner"],
         },
     },
 ]
@@ -152,12 +154,14 @@ STORE = {
     "name": "Bay'n Bae",
     "tagline": "Resort wear for the ones who never quite left the beach.",
     "instagram": env("INSTAGRAM_HANDLE", "baynbae"),
-    "support_email": env("SUPPORT_EMAIL", "hello@baynbae.in"),
+    # Contact details come only from the environment. With no value the
+    # templates render an owner placeholder: a made-up default would read as a
+    # confirmed address.
+    "support_email": env("SUPPORT_EMAIL", ""),
     "support_whatsapp": env("SUPPORT_WHATSAPP", ""),
-    # Shipping is free across India on every prepaid order (owner decision);
-    # the copy below is the single sentence every template uses.
-    "shipping_note": "Free shipping across India on all orders",
-    "dispatch_days": "2–4 working days",
+    # Locked owner decision; the one sentence every template uses. Dispatch
+    # city and timelines are not known yet and render as owner placeholders.
+    "shipping_note": "Free shipping across India on all prepaid orders.",
     "theme_color": _css_token("cream"),
 }
 

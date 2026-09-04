@@ -207,7 +207,7 @@ PRODUCTS = [
         "sort_weight": 49,
         "description": (
             "Small cream flowers on blue, on a blend that falls like water. The Golden Hour is the one we cut the fewest of, because the fabric was "
-            "a single bolt from a mill in Erode and we refused to substitute it.\n\n"
+            "a single bolt and we refused to substitute it.\n\n"
             "Fitted at the top, then it just goes. Wear it barefoot at a beach wedding or with white sneakers to a college fest. Both have happened."
         ),
     },

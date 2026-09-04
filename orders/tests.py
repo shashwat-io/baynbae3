@@ -230,7 +230,7 @@ class PricingTests(TestCase):
                 self.assertNotIn("₹79", html)
                 self.assertNotIn("shipping over", html.lower())
         self.assertContains(self.client.get(reverse("catalog:home")), "Free shipping across India")
-        self.assertContains(self.client.get(reverse("orders:bag")), "Shipping's on us")
+        self.assertContains(self.client.get(reverse("orders:bag")), "Free shipping across India on all prepaid orders.")
 
 
 @override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")

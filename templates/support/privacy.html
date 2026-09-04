@@ -17,6 +17,6 @@
   <p>Us, Razorpay (payment), and the courier (delivery address and phone). Nobody else, and we don't sell or rent anything.</p>
   <h2 class="display display--md">How long</h2>
   <p>Order records are kept for as long as Indian tax law makes us keep them. Support messages are kept until resolved and then for a year in case it comes up again. Ask us to delete your details and we will, unless the law says otherwise.</p>
-  <p>Questions: <a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a>.</p>
+  <p>Questions: {% include "partials/support_email.html" %}.</p>
 </section>
 {% endblock %}

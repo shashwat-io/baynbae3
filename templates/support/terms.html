@@ -12,10 +12,10 @@
   <h2 class="display display--md">Prices</h2>
   <p>All prices are in Indian rupees and include GST. Shipping is shown separately at checkout. We may change prices at any time, but never on an order you've already paid for.</p>
   <h2 class="display display--md">Colours and prints</h2>
-  <p>Everything is hand-screened, so small variations between pieces are the point, not a defect. Screens vary a little too; our blue is our blue, but it's a fabric, not a hex code.</p>
-  <h2 class="display display--md">Exchanges, refunds, and everything else</h2>
-  <p>Covered in <a href="{% url 'support:shipping_returns' %}">Shipping &amp; exchanges</a>, which is part of these terms.</p>
+  <p>{% owner "print process" %} Small variations between pieces are the point, not a defect. Our blue is our blue, but it's a fabric, not a hex code.</p>
+  <h2 class="display display--md">Returns, refunds, and everything else</h2>
+  <p>Covered in <a href="{% url 'support:shipping_returns' %}">Shipping &amp; returns</a>, which is part of these terms.</p>
   <h2 class="display display--md">Us</h2>
-  <p>Bay'n Bae is a small label operating from Bengaluru, Karnataka, India. These terms are governed by Indian law and any disputes go to the courts of Bengaluru, though we'd much rather sort it out over email first: <a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a>.</p>
+  <p>Bay'n Bae is a small label operating from {% owner "registered business address" %}. These terms are governed by Indian law and any disputes go to the courts of {% owner "jurisdiction city" %}, though we'd much rather sort it out over email first: {% include "partials/support_email.html" %}.</p>
 </section>
 {% endblock %}

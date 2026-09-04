@@ -103,6 +103,9 @@ strong { font-weight: 700; }
 .ticker { background: var(--blue); color: var(--cream); overflow: hidden; font-family: var(--display); text-transform: uppercase; font-size: .95rem; letter-spacing: .06em; }
 .ticker__track { display: flex; gap: 28px; width: max-content; padding: 8px 0; animation: ticker 40s linear infinite; }
 .ticker__track span { white-space: nowrap; }
+
+/* Owner-input placeholder: a brand fact not supplied yet (see PROJECT.md). Loud on purpose. */
+mark.todo { background: var(--cream); color: var(--blue); padding: 0 .35em; border-radius: 4px; outline: 1.5px dashed var(--blue); font-weight: 500; font-family: var(--body); text-transform: none; letter-spacing: 0; }
 @keyframes ticker { to { transform: translateX(-50%); } }
 
 /* ---------- header ------------------------------------------------------ */

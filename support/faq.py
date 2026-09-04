@@ -1,5 +1,9 @@
 """Questions people actually DM us. Rendered on /faq and on product pages."""
 
+from django.utils.html import format_html
+
+from catalog.placeholders import owner
+
 FAQ = [
     {
         "group": "Ordering",
@@ -13,7 +17,13 @@ FAQ = [
     {
         "group": "Shipping",
         "items": [
-            ("How long does delivery take?", "We dispatch in 2–4 working days from our Bengaluru studio. Metros usually see it in 2–3 days after that, everywhere else in 4–7. Shipping is free across India on all orders."),
+            (
+                "How long does delivery take?",
+                format_html(
+                    "We dispatch in {} from {}. Delivery takes {} after that. Free shipping across India on all prepaid orders.",
+                    owner("dispatch window"), owner("dispatch city"), owner("delivery window"),
+                ),
+            ),
             ("Do you ship to hostels and PGs?", "Yes, and we know the gate situation. Put the gate timings or warden's name in the note at checkout and we pass it on to the courier."),
             ("Do you ship outside India?", "Not yet. If you're abroad and desperate, send us a note — we've been known to make a plan."),
             ("How do I track my parcel?", "Once it's shipped we add the courier and tracking number to your order. Use the Track page with your order number and email."),
@@ -24,15 +34,15 @@ FAQ = [
         "items": [
             ("Which size am I?", "Check the size guide — it's body measurements, not garment measurements, and most of our styles are cut relaxed. Between sizes? Go down for dresses and co-ords, stay put for kaftans (they're one-size anyway)."),
             ("Are the fabrics see-through?", "Cover-ups are meant to be sheer. Kaftans and dresses are lined where it matters or cut in an opaque weight. Every product page says exactly what it's made of."),
-            ("How do I wash them?", "Gentle machine wash cold, inside out, and line dry in the shade. The prints are pigment-printed so they'll soften, not fade. Skip the dryer and the bleach."),
+            ("How do I wash them?", "Gentle machine wash cold, inside out, and line dry in the shade. Skip the dryer and the bleach."),
         ],
     },
     {
-        "group": "Exchanges & defects",
+        "group": "Returns & defects",
         "items": [
-            ("Can I exchange a size?", "Yes, within 7 days of delivery, unworn with tags on, as long as we have the size. Write to us from the Contact page and we'll arrange the pickup. One exchange per order."),
-            ("What if something arrives damaged?", "Send us a photo within 48 hours of delivery and we'll replace it or refund you, your call. We check every piece before it goes out, but couriers are couriers."),
-            ("Do you do refunds?", "Only for defects or if we can't fulfil an exchange. Everything else is exchange-only — small batches don't survive a return culture, and we'd rather keep prices where they are."),
+            ("Can I return or exchange something?", "Returns are for defects only, reported within 3–5 days of delivery. There are no returns or exchanges for fit or change of mind, so check the size guide before you order."),
+            ("What if something arrives damaged?", "Write to us from the Contact page with a photo within 3–5 days of delivery and we'll replace it or refund you, your call. We check every piece before it goes out, but couriers are couriers."),
+            ("Do you do refunds?", "Only for defects, reported within 3–5 days of delivery. Small batches don't survive a return culture, and we'd rather keep prices where they are."),
         ],
     },
 ]

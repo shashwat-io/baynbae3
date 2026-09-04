@@ -29,8 +29,8 @@
     <span>{{ store.shipping_note }}</span><span>✦</span>
     <span>Prepaid only, zero drama</span><span>✦</span>
     <span>Cut in batches of 10–20</span><span>✦</span>
-    <span>Ships from Bengaluru in {{ store.dispatch_days }}</span><span>✦</span>
-    <span>Exchanges within 7 days</span><span>✦</span>
+    <span>Ships from {% owner "dispatch city" %} in {% owner "dispatch window" %}</span><span>✦</span>
+    <span>Returns for defects only, within 3–5 days</span><span>✦</span>
     {% endfor %}
   </div>
 </div>
@@ -85,7 +85,7 @@
     <div class="footer-top">
       <div class="footer-brand">
         <img src="{% static 'img/logo-wordmark.svg' %}" alt="{{ store.name }}" width="180" height="44" class="footer-logo">
-        <p class="footer-tag">Resort wear for the ones who never quite left the beach. Cut in small batches in Bengaluru, worn everywhere.</p>
+        <p class="footer-tag">Resort wear for the ones who never quite left the beach. Cut in small batches in India, worn everywhere.</p>
         <a class="footer-ig" href="https://instagram.com/{{ store.instagram }}" rel="noopener">@{{ store.instagram }} on Instagram →</a>
       </div>
       <div class="footer-cols">
@@ -99,7 +99,7 @@
           <a href="{% url 'catalog:size_guide' %}">Size guide</a>
           <a href="{% url 'support:faq' %}">FAQ</a>
           <a href="{% url 'orders:track' %}">Track an order</a>
-          <a href="{% url 'support:shipping_returns' %}">Shipping &amp; exchanges</a>
+          <a href="{% url 'support:shipping_returns' %}">Shipping &amp; returns</a>
           <a href="{% url 'support:contact' %}">Contact</a>
         </div>
         <div>
@@ -107,7 +107,7 @@
           <a href="{% url 'catalog:about' %}">About Bay'n Bae</a>
           <a href="{% url 'support:privacy' %}">Privacy</a>
           <a href="{% url 'support:terms' %}">Terms</a>
-          <a href="mailto:{{ store.support_email }}">{{ store.support_email }}</a>
+          {% include "partials/support_email.html" %}
         </div>
       </div>
     </div>

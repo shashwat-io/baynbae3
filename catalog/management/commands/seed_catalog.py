@@ -1,4 +1,5 @@
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from catalog.models import Category, Product, ProductImage, Variant
@@ -6,13 +7,30 @@ from catalog.seed_data import CARE_DEFAULT, CATEGORIES, IMAGE_ALTS, PRODUCTS
 
 
 class Command(BaseCommand):
-    help = "Load the launch catalogue. Idempotent: existing products are updated, stock is only set on first creation."
+    help = (
+        "Load the sample catalogue for development. Idempotent: existing products are updated, "
+        "stock and published state are only set on first creation."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--reset-stock", action="store_true", help="Also overwrite stock counts.")
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Run outside DEBUG. The seed catalogue is sample data, not real products — see README.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        # PRODUCTS is invented sample data: names, prints, prices and fabric
+        # compositions nobody has verified. Loading it into a real database
+        # would publish sixteen products making claims about garments that do
+        # not exist, so outside development it takes an explicit --force.
+        if not settings.DEBUG and not options["force"]:
+            raise CommandError(
+                "seed_catalog loads sample data and DEBUG is false. Re-run with --force if you "
+                "really mean to write the sample catalogue to this database."
+            )
         created_n = updated_n = 0
         categories = {}
         for order, cat in enumerate(CATEGORIES):
@@ -26,9 +44,12 @@ class Command(BaseCommand):
             }
             fields["category"] = categories[data["category"]]
             fields["care"] = data.get("care", CARE_DEFAULT)
-            fields["is_live"] = True
             fields["is_featured"] = data.get("featured", False)
-            product, created = Product.objects.update_or_create(slug=data["slug"], defaults=fields)
+            # is_live is set on creation only. Re-seeding must never republish a
+            # product someone deliberately took off the storefront in the admin.
+            product, created = Product.objects.update_or_create(
+                slug=data["slug"], defaults=fields, create_defaults={**fields, "is_live": True}
+            )
             created_n += created
             updated_n += not created
             for size, qty in data["stock"].items():

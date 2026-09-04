@@ -168,8 +168,8 @@ class StyleSheetTests(TestCase):
 
 class SeedTests(TestCase):
     def test_seed_is_idempotent_and_images_exist(self):
-        call_command("seed_catalog", verbosity=0)
-        call_command("seed_catalog", verbosity=0)
+        call_command("seed_catalog", "--force", verbosity=0)
+        call_command("seed_catalog", "--force", verbosity=0)
         self.assertEqual(Product.objects.count(), len(PRODUCTS))
         self.assertEqual(list(Category.objects.values_list("slug", flat=True)), [c["slug"] for c in CATEGORIES])
         self.assertTrue(all(p.category.slug == d["category"] for p, d in zip(Product.objects.order_by("pk"), PRODUCTS)))
@@ -184,9 +184,9 @@ class SeedTests(TestCase):
         v = Variant.objects.first()
         v.stock = 0
         v.save()
-        call_command("seed_catalog", verbosity=0)
+        call_command("seed_catalog", "--force", verbosity=0)
         self.assertEqual(Variant.objects.get(pk=v.pk).stock, 0)
-        call_command("seed_catalog", "--reset-stock", verbosity=0)
+        call_command("seed_catalog", "--reset-stock", "--force", verbosity=0)
         self.assertGreater(Variant.objects.get(pk=v.pk).stock, 0)
 
 
@@ -503,3 +503,41 @@ class SizeGuideTests(TestCase):
         self.assertIn('[OWNER: cover-up lengths in cm]', self.html)
         self.assertNotIn("60 inches", self.html)
         self.assertNotIn("120 to 124", self.html)
+
+
+class SeedGuardTests(TestCase):
+    """
+    seed_data.py is sample data: invented names, prints, prices and fabric
+    compositions. The command must not be able to publish it to a real
+    database by accident, and must not republish what an owner unpublished.
+    """
+
+    def test_refuses_to_run_outside_debug_without_force(self):
+        from django.core.management.base import CommandError
+
+        with override_settings(DEBUG=False):
+            with self.assertRaises(CommandError) as ctx:
+                call_command("seed_catalog", verbosity=0)
+        self.assertIn("sample data", str(ctx.exception))
+        self.assertEqual(Product.objects.count(), 0)
+
+    def test_runs_outside_debug_when_forced(self):
+        with override_settings(DEBUG=False):
+            call_command("seed_catalog", "--force", verbosity=0)
+        self.assertGreater(Product.objects.count(), 0)
+
+    def test_runs_in_debug_without_force(self):
+        with override_settings(DEBUG=True):
+            call_command("seed_catalog", verbosity=0)
+        self.assertGreater(Product.objects.live().count(), 0)
+
+    def test_reseeding_does_not_republish_an_unpublished_product(self):
+        call_command("seed_catalog", "--force", verbosity=0)
+        product = Product.objects.live().first()
+        Product.objects.filter(pk=product.pk).update(is_live=False)
+
+        call_command("seed_catalog", "--force", verbosity=0)
+
+        self.assertFalse(Product.objects.get(pk=product.pk).is_live, "re-seeding republished a product the owner took down")
+        # Other products are still updated by the re-seed.
+        self.assertGreater(Product.objects.live().count(), 0)

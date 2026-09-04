@@ -54,7 +54,7 @@ class BrandFactTests(TestCase):
     """
 
     def setUp(self):
-        call_command("seed_catalog", verbosity=0)
+        call_command("seed_catalog", "--force", verbosity=0)
         self.product = Product.objects.live().first()
 
     def every_page(self):

@@ -61,6 +61,23 @@ templates/ server-rendered pages; static/css/site.css is the whole stylesheet
 tools/render_imagery.py   generates every product and editorial image as SVG in the two brand colours
 ```
 
+## Sample data vs. site copy
+
+Two kinds of text live in this repo and they are held to different standards.
+
+**`catalog/seed_data.py` is disposable sample data.** The sixteen products, their names, prints,
+prices, batch sizes and fabric compositions are invented so the storefront has something to
+render during development. The owner replaces all of it with real products before launch, so
+none of it is placeheld. `manage.py seed_catalog` refuses to run when `DEBUG` is false unless
+you pass `--force`, and it sets `is_live` only when it creates a product, so it can never
+republish something taken down in the admin.
+
+**Everything in `templates/` and `support/faq.py` is site copy** and must be either a verified
+fact or a visible placeholder. A fact the owner has not supplied is rendered with the `{% owner %}`
+tag as `<mark class="todo">[OWNER: what is needed]</mark>`, never guessed. Grep for `OWNER:` to
+see what is still outstanding. `support/tests.py::BrandFactTests` holds the line: it renders
+every page and fails on the specific invented claims that have been removed.
+
 ## Configuration (`.env`)
 
 | Variable | Notes |

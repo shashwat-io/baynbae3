@@ -87,9 +87,15 @@ every page and fails on the specific invented claims that have been removed.
 | `ALLOWED_HOSTS`, `SITE_URL` | public origin; `SITE_URL` is used for canonical links, the sitemap and social cards |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | required when `DEBUG=false`; blank with `DEBUG=true` = sandbox mode |
 | `RAZORPAY_WEBHOOK_SECRET` | required when `DEBUG=false`; the webhook returns 403 without it |
-| `SUPPORT_EMAIL`, `SUPPORT_WHATSAPP`, `INSTAGRAM_HANDLE` | storefront contact details |
+| `SUPPORT_EMAIL`, `SUPPORT_WHATSAPP`, `INSTAGRAM_HANDLE` | storefront contact details; leave blank and the page shows an `[OWNER: …]` placeholder rather than a made-up address |
 
-Shipping is free across India on all orders; that sentence and the dispatch copy live in `STORE` in `config/settings.py`.
+`.env` fills in variables the environment does not define at all. A variable that is set but
+empty stays empty, so `SUPPORT_WHATSAPP=` in the environment means "this store has no WhatsApp
+number" and `.env` will not override it. Because of that, editing `.env` needs a restart rather
+than an autoreload.
+
+The shipping sentence lives in `STORE` in `config/settings.py`; it is the only place that copy
+is written.
 
 ## Deploying
 

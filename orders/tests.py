@@ -58,20 +58,36 @@ def make_product(slug="tester", price=2499, sizes=None, live=True):
     return product
 
 
-def load_settings(**env):
+def load_settings(dotenv=None, **env):
     """
     Import config/settings.py as a throwaway module under exactly the given
     environment. The .env loader is stubbed out so the developer's local file
-    cannot leak keys into the test.
+    cannot leak keys into the test; pass `dotenv={...}` to supply a fake one.
     """
     path = settings.BASE_DIR / "config" / "settings.py"
     with mock.patch.dict(os.environ, {"SECRET_KEY": "test-only", **env}, clear=True), mock.patch(
-        "dotenv.dotenv_values", return_value={}
+        "dotenv.dotenv_values", return_value=dotenv or {}
     ):
         spec = importlib.util.spec_from_file_location("settings_under_test", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     return module
+
+
+class DotenvPrecedenceTests(TestCase):
+    """.env fills in absent variables only; a set-but-empty one is a decision."""
+
+    def test_env_file_does_not_override_a_deliberately_blank_variable(self):
+        module = load_settings(dotenv={"SUPPORT_EMAIL": "hello@baynbae.in"}, DEBUG="true", SUPPORT_EMAIL="")
+        self.assertEqual(module.STORE["support_email"], "")
+
+    def test_env_file_fills_a_variable_the_environment_does_not_define(self):
+        module = load_settings(dotenv={"SUPPORT_EMAIL": "hello@baynbae.in"}, DEBUG="true")
+        self.assertEqual(module.STORE["support_email"], "hello@baynbae.in")
+
+    def test_environment_still_wins_over_the_env_file(self):
+        module = load_settings(dotenv={"SUPPORT_EMAIL": "file@example.in"}, DEBUG="true", SUPPORT_EMAIL="real@example.in")
+        self.assertEqual(module.STORE["support_email"], "real@example.in")
 
 
 class SettingsTests(TestCase):

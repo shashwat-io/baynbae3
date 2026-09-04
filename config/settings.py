@@ -13,12 +13,13 @@ from dotenv import dotenv_values
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Values from .env fill in anything missing or blank in the process environment.
-# (Plain load_dotenv never overrides an existing variable, and the dev server's
-# autoreloader hands its children the parent's environment, so editing .env
-# would otherwise not take effect until a full restart.)
+# Values from .env fill in variables the process environment does not define at
+# all. A variable that is set but empty is a deliberate choice — "this store has
+# no WhatsApp number", "this deployment has no Sentry DSN" — and .env must not
+# quietly override it. Editing .env therefore needs a restart, not just a
+# reload, because the autoreloader's children inherit the parent's environment.
 for _key, _value in dotenv_values(BASE_DIR / ".env").items():
-    if _value is not None and not os.environ.get(_key):
+    if _value is not None and _key not in os.environ:
         os.environ[_key] = _value
 
 

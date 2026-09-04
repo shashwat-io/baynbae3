@@ -275,6 +275,46 @@ class PayPageTests(TestCase):
         r = self.client.get(reverse("orders:pay", args=[self.order.token]))
         self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.token]))
 
+    def test_retry_never_knocks_a_paid_order_back_to_pending(self):
+        """
+        Audit HIGH: shopper cancels (payment_failed), the webhook lands (paid,
+        stock taken), then the shopper reloads /pay holding a stale
+        payment_failed order. The retry update must not touch the paid row,
+        and a later valid callback must not decrement stock a second time.
+        """
+        self.client.get(reverse("orders:cancelled", args=[self.order.token]))
+        stale = Order.objects.get(pk=self.order.pk)
+        self.assertEqual(stale.status, "payment_failed")
+        # the webhook wins the race
+        self.assertTrue(Order.objects.get(pk=self.order.pk).mark_paid("pay_webhook"))
+        self.s.refresh_from_db()
+        self.assertEqual(self.s.stock, 2)
+        # /pay runs against the stale object
+        with mock.patch("orders.views.Order.from_token", return_value=stale):
+            r = self.client.get(reverse("orders:pay", args=[self.order.token]))
+        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.token]), fetch_redirect_response=False)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "paid")
+        # the browser callback arrives afterwards: no second decrement
+        sig = gateway.sign_payment(self.order.razorpay_order_id, "pay_webhook")
+        self.client.post(
+            reverse("orders:callback"),
+            {"razorpay_order_id": self.order.razorpay_order_id, "razorpay_payment_id": "pay_webhook", "razorpay_signature": sig},
+        )
+        self.order.refresh_from_db()
+        self.s.refresh_from_db()
+        self.assertEqual(self.order.status, "paid")
+        self.assertEqual(self.s.stock, 2)
+
+    def test_retry_on_an_expired_order_sends_shopper_back_to_bag(self):
+        self.client.get(reverse("orders:cancelled", args=[self.order.token]))
+        stale = Order.objects.get(pk=self.order.pk)
+        Order.objects.filter(pk=self.order.pk).update(status=Order.Status.ABANDONED)
+        with mock.patch("orders.views.Order.from_token", return_value=stale):
+            r = self.client.get(reverse("orders:pay", args=[self.order.token]))
+        self.assertRedirects(r, reverse("orders:bag"), fetch_redirect_response=False)
+        self.assertEqual(Order.objects.get(pk=self.order.pk).status, "abandoned")
+
 
 @override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
 class CallbackTests(TestCase):

@@ -151,8 +151,19 @@ def pay(request, token):
         messages.info(request, "That checkout expired. Your bag is still here — go again.")
         return redirect("orders:bag")
     if order.status == Order.Status.PAYMENT_FAILED:
-        # Allow a retry against the same gateway order.
-        Order.objects.filter(pk=order.pk).update(status=Order.Status.PENDING)
+        # Allow a retry against the same gateway order. The status guard matters:
+        # a webhook may have marked this order paid since we loaded it, and a
+        # paid order must never be knocked back to pending (it would be paid
+        # twice for stock and then swept to abandoned).
+        moved = Order.objects.filter(pk=order.pk, status=Order.Status.PAYMENT_FAILED).update(
+            status=Order.Status.PENDING
+        )
+        if not moved:
+            order.refresh_from_db()
+            if order.is_paid:
+                return redirect("orders:confirmation", token=order.token)
+            messages.info(request, "That checkout expired. Your bag is still here — go again.")
+            return redirect("orders:bag")
         order.status = Order.Status.PENDING
     callback_url = settings.SITE_URL + reverse("orders:callback")
     cancel_url = settings.SITE_URL + reverse("orders:cancelled", args=[order.token])

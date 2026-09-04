@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 from django.conf import settings
 from django.contrib import messages
@@ -23,6 +24,19 @@ log = logging.getLogger(__name__)
 PENDING_ORDER_KEY = "pending_order"
 CHECKOUT_PREFILL_KEY = "checkout_prefill"
 CONFIRMED_ORDERS_KEY = "confirmed_orders"
+TRACK_ATTEMPTS_KEY = "track_attempts"
+
+# Order numbers are sequential, so the track page is rate-limited per session.
+TRACK_LOOKUP_LIMIT = 10
+TRACK_LOOKUP_WINDOW_SECONDS = 60 * 60
+
+
+def _int_or_none(value):
+    """Parse a form value as an int; anything that is not one is None, never a 500."""
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
 
 
 def _flash_notices(request, bag):
@@ -41,13 +55,19 @@ def bag_view(request):
 
 @require_POST
 def bag_add(request):
-    try:
-        variant = Variant.objects.select_related("product").get(pk=int(request.POST.get("variant", 0)))
-    except (Variant.DoesNotExist, ValueError):
+    back = request.POST.get("next") or "catalog:shop"
+    variant_id = _int_or_none(request.POST.get("variant"))
+    variant = Variant.objects.select_related("product").filter(pk=variant_id).first() if variant_id else None
+    if variant is None:
         messages.error(request, "Pick a size first.")
-        return redirect(request.POST.get("next") or "catalog:shop")
+        return redirect(back)
+    raw_quantity = (request.POST.get("quantity") or "").strip()
+    quantity = 1 if not raw_quantity else _int_or_none(raw_quantity)
+    if quantity is None or quantity < 1:
+        messages.error(request, "That quantity didn't make sense, so nothing was added. Try a whole number of 1 or more.")
+        return redirect(back)
     bag = Bag(request.session)
-    added = bag.add(variant, int(request.POST.get("quantity", 1) or 1))
+    added = bag.add(variant, quantity)
     _flash_notices(request, bag)
     if added:
         messages.success(request, f"{variant.product.name} ({variant.size_label}) is in your bag.")
@@ -58,14 +78,18 @@ def bag_add(request):
 def bag_update(request):
     bag = Bag(request.session)
     action = request.POST.get("action", "")
-    variant_id = request.POST.get("variant")
-    if action == "remove" and variant_id:
-        bag.remove(variant_id)
-    elif action in {"inc", "dec"} and variant_id:
+    variant_id = _int_or_none(request.POST.get("variant"))
+    if variant_id is None:
+        messages.error(request, "That item isn't in your bag.")
+    elif action == "remove":
+        bag.remove(str(variant_id))
+    elif action in {"inc", "dec"}:
         variant = Variant.objects.filter(pk=variant_id).select_related("product").first()
         if variant:
             current = bag.data.get(str(variant.pk), 0)
             bag.set_quantity(variant, current + (1 if action == "inc" else -1))
+        else:
+            messages.error(request, "That item isn't in your bag.")
     _flash_notices(request, bag)
     return redirect("orders:bag")
 
@@ -311,16 +335,27 @@ def razorpay_webhook(request):
 
 
 # ----------------------------------------------------------------- track
+def _recent_track_attempts(session):
+    cutoff = time.time() - TRACK_LOOKUP_WINDOW_SECONDS
+    return [t for t in session.get(TRACK_ATTEMPTS_KEY, []) if t > cutoff]
+
+
 def track(request):
+    """Look up one order by order number + email, at most TRACK_LOOKUP_LIMIT tries an hour per session."""
     order = None
+    rate_limited = False
     form = TrackForm(request.GET or None)
     searched = bool(request.GET)
     if searched and form.is_valid():
-        contact = form.cleaned_data["contact"].strip().lower()
-        digits = "".join(ch for ch in contact if ch.isdigit())[-10:]
-        candidate = Order.objects.filter(order_number=form.cleaned_data["order_number"]).first()
-        if candidate and (candidate.email.lower() == contact or (digits and candidate.phone.endswith(digits))):
-            order = candidate
+        attempts = _recent_track_attempts(request.session)
+        if len(attempts) >= TRACK_LOOKUP_LIMIT:
+            rate_limited = True
+        else:
+            attempts.append(time.time())
+            request.session[TRACK_ATTEMPTS_KEY] = attempts
+            order = Order.objects.filter(
+                order_number=form.cleaned_data["order_number"], email__iexact=form.cleaned_data["email"].strip()
+            ).first()
     return render(
         request,
         "orders/track.html",
@@ -328,6 +363,7 @@ def track(request):
             "form": form,
             "order": order,
             "searched": searched,
+            "rate_limited": rate_limited,
             # Order pages are session-gated; only offer links this browser can open.
             "can_open": bool(order and _session_owns(request, order)),
         },

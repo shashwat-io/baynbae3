@@ -4,7 +4,7 @@ FAQ = [
     {
         "group": "Ordering",
         "items": [
-            ("Do I need an account?", "No. Bag, address, pay, done. Your order number and a link land on the confirmation page — screenshot it, and you can always look it up on the Track page with your email or phone."),
+            ("Do I need an account?", "No. Bag, address, pay, done. Your order number and a link land on the confirmation page — screenshot it, and you can always look it up on the Track page with your email."),
             ("Is cash on delivery available?", "No. Everything is prepaid through Razorpay — UPI, cards, net banking, wallets. It keeps prices honest and lets us cut tiny batches without returns-to-origin eating us alive."),
             ("Why is a size missing?", "Small batch means small numbers. Each style is cut in 10–20 pieces total. When a size is gone it's usually gone for good, so if it's in stock and you're sure, don't sleep on it."),
             ("Can I change my order after paying?", "If we haven't packed it yet, yes — message us on the Contact page with your order number within a few hours and we'll swap the size or address."),
@@ -16,7 +16,7 @@ FAQ = [
             ("How long does delivery take?", "We dispatch in 2–4 working days from our Bengaluru studio. Metros usually see it in 2–3 days after that, everywhere else in 4–7. Shipping is free over ₹1,999 and ₹79 otherwise."),
             ("Do you ship to hostels and PGs?", "Yes, and we know the gate situation. Put the gate timings or warden's name in the note at checkout and we pass it on to the courier."),
             ("Do you ship outside India?", "Not yet. If you're abroad and desperate, send us a note — we've been known to make a plan."),
-            ("How do I track my parcel?", "Once it's shipped we add the courier and tracking number to your order. Use the Track page with your order number and email or phone."),
+            ("How do I track my parcel?", "Once it's shipped we add the courier and tracking number to your order. Use the Track page with your order number and email."),
         ],
     },
     {

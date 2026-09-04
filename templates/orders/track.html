@@ -5,14 +5,15 @@
 <section class="wrap page-head page-head--tight">
   <p class="eyebrow">Track</p>
   <h1 class="display display--xl">Where's my parcel?</h1>
-  <p class="lede">No accounts here. Your order number plus the email or phone you used at checkout is all we need.</p>
+  <p class="lede">No accounts here. Your order number plus the email you used at checkout is all we need.</p>
 </section>
 <section class="wrap checkout">
   <form method="get" class="checkout__form track-form" novalidate>
     {% include "partials/field.html" with f=form.order_number autocomplete="off" %}
-    {% include "partials/field.html" with f=form.contact autocomplete="email" %}
+    {% include "partials/field.html" with f=form.email type="email" autocomplete="email" %}
     <button class="btn btn--primary btn--lg">Find it</button>
-    {% if searched and not order and form.is_valid %}<p class="form-error">No order matches that. Check the number on your confirmation page and the email or phone you used.</p>{% endif %}
+    {% if rate_limited %}<p class="form-error">Too many lookups from this browser. Try again later — the limit resets within the hour.</p>
+    {% elif searched and not order and form.is_valid %}<p class="form-error">No order matches that. Check the number on your confirmation page and the email you used.</p>{% endif %}
   </form>
   {% if order %}
   <aside class="summary summary--checkout">

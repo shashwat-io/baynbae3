@@ -166,6 +166,36 @@ class BagTests(TestCase):
         r = self.client.post(reverse("orders:bag_add"), {"variant": "nope"})
         self.assertEqual(r.status_code, 302)
 
+    def test_add_with_non_numeric_quantity_is_ignored_with_a_message(self):
+        """Audit: `quantity=abc` was a bare int() and a 500."""
+        r = self.client.post(reverse("orders:bag_add"), {"variant": self.s.pk, "quantity": "abc"}, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "quantity didn")
+        self.assertEqual(self.client.session.get(SESSION_KEY, {}), {})
+
+    def test_add_with_zero_negative_or_fractional_quantity_is_ignored_with_a_message(self):
+        for bad in ("0", "-3", "1.5"):
+            with self.subTest(quantity=bad):
+                r = self.client.post(reverse("orders:bag_add"), {"variant": self.s.pk, "quantity": bad}, follow=True)
+                self.assertEqual(r.status_code, 200)
+                self.assertContains(r, "quantity didn")
+                self.assertEqual(self.client.session.get(SESSION_KEY, {}), {})
+
+    def test_add_with_blank_quantity_means_one(self):
+        # the product form sends no quantity field at all
+        self.client.post(reverse("orders:bag_add"), {"variant": self.s.pk, "quantity": " "})
+        self.assertEqual(self.client.session[SESSION_KEY], {str(self.s.pk): 1})
+
+    def test_update_with_non_numeric_variant_is_ignored_with_a_message(self):
+        """Audit: `variant=abc` reached the ORM as a pk and was a 500."""
+        self.client.post(reverse("orders:bag_add"), {"variant": self.s.pk})
+        for action in ("inc", "dec", "remove"):
+            with self.subTest(action=action):
+                r = self.client.post(reverse("orders:bag_update"), {"variant": "abc", "action": action}, follow=True)
+                self.assertEqual(r.status_code, 200)
+                self.assertContains(r, "isn&#x27;t in your bag")
+                self.assertEqual(self.client.session[SESSION_KEY], {str(self.s.pk): 1})
+
 
 class PricingTests(TestCase):
     def test_shipping_threshold(self):
@@ -525,17 +555,43 @@ class TrackAndExpiryTests(TestCase):
     def setUp(self):
         self.order = Order.objects.create(status="shipped", subtotal_inr=1, shipping_inr=0, total_inr=1, courier="Delhivery", tracking_number="DL123", **ADDRESS)
 
-    def test_track_by_email_or_phone(self):
-        r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number.lower(), "contact": "ANANYA@example.com"})
+    def track(self, order_number=None, email="ananya@example.com"):
+        return self.client.get(reverse("orders:track"), {"order_number": order_number or self.order.order_number, "email": email})
+
+    def test_track_by_order_number_and_email_only(self):
+        r = self.track(order_number=self.order.order_number.lower(), email="ANANYA@example.com")
         self.assertContains(r, "DL123")
         # tracking never hands out a link to the session-gated receipt
         self.assertNotContains(r, "Full order details")
         self.assertNotContains(r, ADDRESS["address1"])
-        r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number, "contact": "+91 98765 43210"})
-        self.assertContains(r, "DL123")
-        r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number, "contact": "someone@else.com"})
+        r = self.track(email="someone@else.com")
         self.assertContains(r, "No order matches")
         self.assertNotContains(r, "DL123")
+        # the phone number is no longer a credential (audit: sequential numbers + last-10-digits)
+        r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number, "email": "+91 98765 43210"})
+        self.assertNotContains(r, "DL123")
+        r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number, "contact": "ananya@example.com"})
+        self.assertNotContains(r, "DL123")
+
+    def test_track_is_rate_limited_to_ten_lookups_an_hour_per_session(self):
+        for _ in range(10):
+            r = self.track(email="wrong@example.com")
+            self.assertContains(r, "No order matches")
+            self.assertNotContains(r, "Try again later")
+        # the eleventh attempt is refused even with the right email
+        r = self.track()
+        self.assertContains(r, "Try again later")
+        self.assertNotContains(r, "DL123")
+        self.assertNotContains(r, "No order matches")
+        # a different browser is unaffected
+        r = Client().get(reverse("orders:track"), {"order_number": self.order.order_number, "email": "ananya@example.com"})
+        self.assertContains(r, "DL123")
+        # ...and the limit expires after an hour
+        session = self.client.session
+        session["track_attempts"] = [t - 3601 for t in session["track_attempts"]]
+        session.save()
+        r = self.track()
+        self.assertContains(r, "DL123")
 
     def test_expire_command(self):
         stale = Order.objects.create(status="pending", subtotal_inr=1, shipping_inr=0, total_inr=1, **ADDRESS)

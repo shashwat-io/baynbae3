@@ -247,7 +247,7 @@ class ProductionRenderTests(TestCase):
         order = Order.objects.get()
         self.assert_renders(reverse("orders:pay", args=[order.order_number]))
         self.assert_renders(reverse("orders:track"))
-        self.assert_renders(reverse("orders:track") + f"?order_number={order.order_number}&contact={ADDRESS['email']}")
+        self.assert_renders(reverse("orders:track") + f"?order_number={order.order_number}&email={ADDRESS['email']}")
 
     def test_every_footer_page_renders(self):
         for name in (

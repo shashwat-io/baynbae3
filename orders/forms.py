@@ -44,7 +44,7 @@ class CheckoutForm(forms.Form):
 
 class TrackForm(forms.Form):
     order_number = forms.CharField(label="Order number", max_length=16, help_text="Looks like BNB-1042.")
-    contact = forms.CharField(label="Email or mobile number", max_length=120)
+    email = forms.EmailField(label="Email", help_text="The one you used at checkout.")
 
     def clean_order_number(self):
         return self.cleaned_data["order_number"].strip().upper()

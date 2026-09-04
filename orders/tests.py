@@ -122,6 +122,7 @@ class PricingTests(TestCase):
         self.assertEqual(shipping_for(4999), 0)
 
 
+@override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
 class CheckoutTests(TestCase):
     def setUp(self):
         self.product = make_product(price=1500)
@@ -188,6 +189,7 @@ class CheckoutTests(TestCase):
         self.assertEqual(Order.objects.get().status, "abandoned")
 
 
+@override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
 class PayPageTests(TestCase):
     def setUp(self):
         self.product = make_product(price=2999)
@@ -221,6 +223,7 @@ class PayPageTests(TestCase):
         self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.token]))
 
 
+@override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
 class CallbackTests(TestCase):
     """The hosted checkout POSTs back with a signature; that is the only thing we trust."""
 

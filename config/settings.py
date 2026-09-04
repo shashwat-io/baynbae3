@@ -162,7 +162,7 @@ STORE = {
     # Locked owner decision; the one sentence every template uses. Dispatch
     # city and timelines are not known yet and render as owner placeholders.
     "shipping_note": "Free shipping across India on all prepaid orders.",
-    "theme_color": _css_token("cream"),
+    "theme_color": _css_token("color-cream"),
 }
 
 # ------------------------------------------------------------------ razorpay

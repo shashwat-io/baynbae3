@@ -1,16 +1,16 @@
 /* Bay'n Bae — Django admin additions. Colours live in the :root block only. */
 :root {
-  --blue: #3B63FF;
-  --cream: #F6F5EA;
-  --ink: #17224d;
-  --error: #C4342B;
-  --muted: #8a8a8a;
-  --success: #1f8a5b;
+  --color-blue: #3B63FF;
+  --color-cream: #F6F5EA;
+  --color-ink: #17224d;
+  --color-error: #C4342B;
+  --color-muted: #6E6E68;
+  --color-success: #1f8a5b;
 }
 
-.status-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; color: var(--cream); font-size: 11px; background: var(--muted); }
-.status-badge--paid { background: var(--blue); }
-.status-badge--packed, .status-badge--shipped { background: var(--success); }
-.status-badge--delivered { background: var(--ink); }
-.status-badge--payment_failed, .status-badge--refunded { background: var(--error); }
-.status-badge--pending, .status-badge--abandoned { background: var(--muted); }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 99px; color: var(--color-cream); font-size: 11px; background: var(--color-muted); }
+.status-badge--paid { background: var(--color-blue); }
+.status-badge--packed, .status-badge--shipped { background: var(--color-success); }
+.status-badge--delivered { background: var(--color-ink); }
+.status-badge--payment_failed, .status-badge--refunded { background: var(--color-error); }
+.status-badge--pending, .status-badge--abandoned { background: var(--color-muted); }

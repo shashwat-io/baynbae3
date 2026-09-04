@@ -150,7 +150,11 @@ class StyleSheetTests(TestCase):
 
     def test_new_tokens_carry_the_project_values(self):
         root = re.search(r":root\s*\{[^}]*\}", self.site).group(0)
-        for token in ("--blue-hover: #2E4FD6;", "--surface: #FFFFFF;", "--error: #C4342B;", "--blue: #3B63FF;", "--cream: #F6F5EA;"):
+        for token in (
+            "--color-blue: #3B63FF;", "--color-cream: #F6F5EA;", "--color-muted: #6E6E68;",
+            "--color-border: #DEDCCE;", "--color-surface: #FFFFFF;", "--color-error: #C4342B;",
+            "--color-blue-hover: #2E4FD6;",
+        ):
             self.assertIn(token, root)
 
     def test_select_caret_is_a_static_file_not_a_data_uri(self):
@@ -159,7 +163,7 @@ class StyleSheetTests(TestCase):
         self.assertTrue((settings.BASE_DIR / "static" / "img" / "select-caret.svg").exists())
 
     def test_theme_color_reads_the_cream_token(self):
-        cream = re.search(r"--cream:\s*(#[0-9A-Fa-f]{6});", self.site).group(1)
+        cream = re.search(r"--color-cream:\s*(#[0-9A-Fa-f]{6});", self.site).group(1)
         self.assertEqual(settings.STORE["theme_color"], cream)
         r = self.client.get(reverse("catalog:home"))
         self.assertContains(r, f'<meta name="theme-color" content="{cream}">')
@@ -541,3 +545,41 @@ class SeedGuardTests(TestCase):
         self.assertFalse(Product.objects.get(pk=product.pk).is_live, "re-seeding republished a product the owner took down")
         # Other products are still updated by the re-seed.
         self.assertGreater(Product.objects.live().count(), 0)
+
+
+class TokenNamingTests(TestCase):
+    """PROJECT.md S14 names every colour token --color-*. Both stylesheets follow it."""
+
+    def setUp(self):
+        self.site = (settings.BASE_DIR / "static" / "css" / "site.css").read_text()
+        self.admin = (settings.BASE_DIR / "static" / "css" / "admin.css").read_text()
+
+    def test_every_colour_token_uses_the_color_prefix(self):
+        for name, css in (("site.css", self.site), ("admin.css", self.admin)):
+            with self.subTest(file=name):
+                root = re.search(r":root\s*\{[^}]*\}", css).group(0)
+                declared = re.findall(r"(--[\w-]+)\s*:", root)
+                # A colour token's whole value is one colour. --shadow carries
+                # offsets around an rgba() and is not a colour token.
+                colours = [
+                    t for t in declared
+                    if re.fullmatch(r"#[0-9A-Fa-f]{3,8}|rgba?\([^)]*\)", root.split(t + ":")[1].split(";")[0].split("/*")[0].strip())
+                ]
+                self.assertTrue(colours)
+                for token in colours:
+                    self.assertTrue(token.startswith("--color-"), f"{token} in {name} is a colour without the --color- prefix")
+
+    def test_no_var_reference_uses_an_old_token_name(self):
+        for name, css in (("site.css", self.site), ("admin.css", self.admin)):
+            with self.subTest(file=name):
+                for ref in set(re.findall(r"var\((--[\w-]+)\)", css)):
+                    self.assertIn(f"{ref}:", self.site + self.admin, f"{ref} is referenced but never declared")
+
+    def test_the_two_stylesheets_agree_on_shared_token_values(self):
+        site_root = re.search(r":root\s*\{[^}]*\}", self.site).group(0)
+        admin_root = re.search(r":root\s*\{[^}]*\}", self.admin).group(0)
+        for token in ("--color-blue", "--color-cream", "--color-ink", "--color-error", "--color-muted"):
+            in_site = re.search(rf"{token}:\s*([^;]+);", site_root)
+            in_admin = re.search(rf"{token}:\s*([^;]+);", admin_root)
+            if in_site and in_admin:
+                self.assertEqual(in_site.group(1).split("/*")[0].strip(), in_admin.group(1).strip(), token)

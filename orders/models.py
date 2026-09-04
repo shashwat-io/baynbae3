@@ -1,7 +1,6 @@
 import logging
 
 from django.conf import settings
-from django.core import signing
 from django.db import models, transaction
 from django.db.models import F
 from django.templatetags.static import static
@@ -76,23 +75,10 @@ class Order(models.Model):
             self.order_number = f"BNB-{1000 + self.pk}"
             Order.objects.filter(pk=self.pk).update(order_number=self.order_number)
 
-    # -- tokens ----------------------------------------------------------
-    TOKEN_SALT = "orders.confirmation"
-
-    @property
-    def token(self):
-        return signing.dumps(self.order_number, salt=self.TOKEN_SALT)
-
-    @classmethod
-    def from_token(cls, token):
-        try:
-            number = signing.loads(token, salt=cls.TOKEN_SALT)
-        except signing.BadSignature:
-            return None
-        return cls.objects.filter(order_number=number).first()
-
     def get_absolute_url(self):
-        return reverse("orders:confirmation", args=[self.token])
+        # The receipt is session-gated (see orders.views.confirmation); this URL
+        # is only useful to the browser that placed the order.
+        return reverse("orders:confirmation", args=[self.order_number])
 
     # -- state -----------------------------------------------------------
     @property

@@ -5,7 +5,7 @@
 <section class="wrap page-head confirm-head">
   <p class="eyebrow">{% if just_paid %}Paid, packed soon{% else %}Order{% endif %}</p>
   <h1 class="display display--xl">{% if just_paid %}You're in.{% else %}Order {{ order.order_number }}{% endif %}</h1>
-  <p class="lede">{% if just_paid %}Order <strong>{{ order.order_number }}</strong> is confirmed. Screenshot this page or save the link; there are no accounts here, and this is your receipt.{% else %}Placed {{ order.created_at|date:"j M Y" }}. Status: <strong>{{ order.get_status_display }}</strong>.{% endif %}</p>
+  <p class="lede">{% if just_paid %}Order <strong>{{ order.order_number }}</strong> is confirmed. Screenshot this page; there are no accounts here, and this is your receipt. It stays open in this browser, and <a href="{% url 'orders:track' %}">Track</a> works from anywhere.{% else %}Placed {{ order.created_at|date:"j M Y" }}. Status: <strong>{{ order.get_status_display }}</strong>.{% endif %}</p>
 </section>
 <section class="wrap checkout">
   <div class="confirm">

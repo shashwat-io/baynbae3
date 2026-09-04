@@ -23,9 +23,9 @@
       {% for label, done in order.timeline %}<li class="{% if done %}is-done{% endif %}">{{ label }}</li>{% endfor %}
     </ol>
     {% if order.tracking_number %}<p><strong>{{ order.courier }}</strong> · {{ order.tracking_number }}{% if order.tracking_url %} · <a href="{{ order.tracking_url }}" rel="noopener">Track parcel</a>{% endif %}</p>{% endif %}
-    <a href="{{ order.get_absolute_url }}" class="link-arrow">Full order details</a>
+    {% if can_open %}<a href="{{ order.get_absolute_url }}" class="link-arrow">Full order details</a>{% endif %}
     {% elif order.can_retry_payment %}
-    <p>This order was never paid for. <a href="{% url 'orders:pay' order.token %}">Pay now</a> or start over from the shop.</p>
+    <p>This order was never paid for. {% if can_open %}<a href="{% url 'orders:pay' order.order_number %}">Pay now</a> or start{% else %}Start{% endif %} over from the shop.</p>
     {% else %}
     <p>This checkout expired without payment. Nothing was charged.</p>
     {% endif %}

@@ -198,7 +198,7 @@ class CheckoutTests(TestCase):
     def test_valid_checkout_creates_pending_order_with_snapshots(self):
         r = self.client.post(reverse("orders:checkout"), ADDRESS)
         order = Order.objects.get()
-        self.assertRedirects(r, reverse("orders:pay", args=[order.token]))
+        self.assertRedirects(r, reverse("orders:pay", args=[order.order_number]))
         self.assertEqual(order.status, "pending")
         self.assertEqual(order.order_number, f"BNB-{1000 + order.pk}")
         self.assertEqual(order.subtotal_inr, 1500)
@@ -252,28 +252,34 @@ class PayPageTests(TestCase):
         self.order = Order.objects.get()
 
     def test_sandbox_pay_page_points_at_local_gateway(self):
-        r = self.client.get(reverse("orders:pay", args=[self.order.token]))
-        self.assertContains(r, reverse("orders:sandbox_gateway", args=[self.order.token]))
+        r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
+        self.assertContains(r, reverse("orders:sandbox_gateway", args=[self.order.order_number]))
         self.assertContains(r, "Sandbox mode")
         self.assertContains(r, "2,999")
 
     @override_settings(RAZORPAY_SANDBOX=False, RAZORPAY_KEY_ID="rzp_test_abc", RAZORPAY_KEY_SECRET="s3cret")
     def test_live_pay_page_posts_to_razorpay_hosted_checkout(self):
-        r = self.client.get(reverse("orders:pay", args=[self.order.token]))
+        r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
         self.assertContains(r, gateway.HOSTED_CHECKOUT_URL)
         self.assertContains(r, 'name="key_id" value="rzp_test_abc"')
         self.assertContains(r, 'name="callback_url" value="http://127.0.0.1:8000/checkout/callback/"')
         self.assertNotContains(r, "Sandbox mode")
         # the sandbox stand-in must not be reachable with real keys
-        self.assertEqual(self.client.get(reverse("orders:sandbox_gateway", args=[self.order.token])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("orders:sandbox_gateway", args=[self.order.order_number])).status_code, 404)
 
-    def test_bad_token_404s(self):
-        self.assertEqual(self.client.get(reverse("orders:pay", args=["garbage"])).status_code, 404)
+    def test_unknown_order_number_404s(self):
+        self.assertEqual(self.client.get(reverse("orders:pay", args=["BNB-999999"])).status_code, 404)
+
+    def test_pay_page_is_404_for_any_other_session(self):
+        r = Client().get(reverse("orders:pay", args=[self.order.order_number]))
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(Client().get(reverse("orders:cancelled", args=[self.order.order_number])).status_code, 404)
+        self.assertEqual(Client().get(reverse("orders:sandbox_gateway", args=[self.order.order_number])).status_code, 404)
 
     def test_paid_order_redirects_to_confirmation(self):
         self.order.mark_paid("pay_1")
-        r = self.client.get(reverse("orders:pay", args=[self.order.token]))
-        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.token]))
+        r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
+        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.order_number]))
 
     def test_retry_never_knocks_a_paid_order_back_to_pending(self):
         """
@@ -282,7 +288,7 @@ class PayPageTests(TestCase):
         payment_failed order. The retry update must not touch the paid row,
         and a later valid callback must not decrement stock a second time.
         """
-        self.client.get(reverse("orders:cancelled", args=[self.order.token]))
+        self.client.get(reverse("orders:cancelled", args=[self.order.order_number]))
         stale = Order.objects.get(pk=self.order.pk)
         self.assertEqual(stale.status, "payment_failed")
         # the webhook wins the race
@@ -290,9 +296,9 @@ class PayPageTests(TestCase):
         self.s.refresh_from_db()
         self.assertEqual(self.s.stock, 2)
         # /pay runs against the stale object
-        with mock.patch("orders.views.Order.from_token", return_value=stale):
-            r = self.client.get(reverse("orders:pay", args=[self.order.token]))
-        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.token]), fetch_redirect_response=False)
+        with mock.patch("orders.views._session_order_or_404", return_value=stale):
+            r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
+        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.order_number]), fetch_redirect_response=False)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
         # the browser callback arrives afterwards: no second decrement
@@ -307,11 +313,11 @@ class PayPageTests(TestCase):
         self.assertEqual(self.s.stock, 2)
 
     def test_retry_on_an_expired_order_sends_shopper_back_to_bag(self):
-        self.client.get(reverse("orders:cancelled", args=[self.order.token]))
+        self.client.get(reverse("orders:cancelled", args=[self.order.order_number]))
         stale = Order.objects.get(pk=self.order.pk)
         Order.objects.filter(pk=self.order.pk).update(status=Order.Status.ABANDONED)
-        with mock.patch("orders.views.Order.from_token", return_value=stale):
-            r = self.client.get(reverse("orders:pay", args=[self.order.token]))
+        with mock.patch("orders.views._session_order_or_404", return_value=stale):
+            r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
         self.assertRedirects(r, reverse("orders:bag"), fetch_redirect_response=False)
         self.assertEqual(Order.objects.get(pk=self.order.pk).status, "abandoned")
 
@@ -338,7 +344,7 @@ class CallbackTests(TestCase):
 
     def test_valid_signature_marks_paid_and_decrements_stock_once(self):
         r = self.callback()
-        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.token]), fetch_redirect_response=False)
+        self.assertRedirects(r, reverse("orders:confirmation", args=[self.order.order_number]), fetch_redirect_response=False)
         self.order.refresh_from_db()
         self.s.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
@@ -355,7 +361,7 @@ class CallbackTests(TestCase):
 
     def test_bad_signature_marks_failed_and_leaves_stock(self):
         r = self.callback(signature="deadbeef")
-        self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.token]), fetch_redirect_response=False)
+        self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.order_number]), fetch_redirect_response=False)
         self.order.refresh_from_db()
         self.s.refresh_from_db()
         self.assertEqual(self.order.status, "payment_failed")
@@ -378,17 +384,41 @@ class CallbackTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "paid")
+        # ...and the shopper's own browser, following the redirect, gets the receipt
+        r = self.client.get(r.url)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.order.order_number, self.client.session["confirmed_orders"])
 
     def test_confirmation_clears_bag_and_shows_order(self):
         self.callback()
-        r = self.client.get(reverse("orders:confirmation", args=[self.order.token]))
+        r = self.client.get(reverse("orders:confirmation", args=[self.order.order_number]))
         self.assertContains(r, self.order.order_number)
         self.assertContains(r, "re in.")
         self.assertEqual(self.client.session.get(SESSION_KEY), {})
 
     def test_confirmation_for_unpaid_order_redirects_to_pay(self):
-        r = self.client.get(reverse("orders:confirmation", args=[self.order.token]))
-        self.assertRedirects(r, reverse("orders:pay", args=[self.order.token]))
+        r = self.client.get(reverse("orders:confirmation", args=[self.order.order_number]))
+        self.assertRedirects(r, reverse("orders:pay", args=[self.order.order_number]))
+
+    def test_receipt_is_session_gated_not_a_bearer_link(self):
+        """Audit MEDIUM: the old signed-token link exposed name, address, phone and email forever."""
+        self.callback()
+        url = reverse("orders:confirmation", args=[self.order.order_number])
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, ADDRESS["address1"])
+        # the paying session keeps access after the pending marker is consumed
+        self.assertNotIn("pending_order", self.client.session)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        # a fresh browser holding only the order number sees nothing
+        stranger = Client()
+        r = stranger.get(url)
+        self.assertEqual(r.status_code, 404)
+        self.assertNotIn(ADDRESS["address1"].encode(), r.content)
+        self.assertNotIn(ADDRESS["phone"].encode(), r.content)
+        # no token-style URL survives anywhere in the order pages
+        self.assertFalse(hasattr(Order, "token"))
+        self.assertFalse(hasattr(Order, "from_token"))
 
     def test_oversell_is_flagged_not_hidden(self):
         # someone else bought the stock while this shopper was on the gateway
@@ -401,12 +431,12 @@ class CallbackTests(TestCase):
         self.assertEqual(self.s.stock, 0)
 
     def test_cancelled_page_marks_failed_and_offers_retry(self):
-        r = self.client.get(reverse("orders:cancelled", args=[self.order.token]))
+        r = self.client.get(reverse("orders:cancelled", args=[self.order.order_number]))
         self.assertContains(r, "Try paying again")
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "payment_failed")
         # retry flips it back to pending against the same gateway order
-        r = self.client.get(reverse("orders:pay", args=[self.order.token]))
+        r = self.client.get(reverse("orders:pay", args=[self.order.order_number]))
         self.assertEqual(r.status_code, 200)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "pending")
@@ -416,12 +446,12 @@ class CallbackTests(TestCase):
         self.assertEqual(self.order.status, "paid")
 
     def test_sandbox_gateway_round_trip(self):
-        r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.token]))
+        r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.order_number]))
         self.assertContains(r, "Payment succeeds")
-        r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.token]), {"outcome": "success"})
+        r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.order_number]), {"outcome": "success"})
         self.assertContains(r, 'name="razorpay_signature"')
-        r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.token]), {"outcome": "fail"})
-        self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.token]), fetch_redirect_response=False)
+        r = self.client.post(reverse("orders:sandbox_gateway", args=[self.order.order_number]), {"outcome": "fail"})
+        self.assertRedirects(r, reverse("orders:cancelled", args=[self.order.order_number]), fetch_redirect_response=False)
 
 
 @override_settings(RAZORPAY_SANDBOX=False, RAZORPAY_KEY_ID="rzp_test_abc", RAZORPAY_KEY_SECRET="s3cret", RAZORPAY_WEBHOOK_SECRET="whsec")
@@ -498,6 +528,9 @@ class TrackAndExpiryTests(TestCase):
     def test_track_by_email_or_phone(self):
         r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number.lower(), "contact": "ANANYA@example.com"})
         self.assertContains(r, "DL123")
+        # tracking never hands out a link to the session-gated receipt
+        self.assertNotContains(r, "Full order details")
+        self.assertNotContains(r, ADDRESS["address1"])
         r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number, "contact": "+91 98765 43210"})
         self.assertContains(r, "DL123")
         r = self.client.get(reverse("orders:track"), {"order_number": self.order.order_number, "contact": "someone@else.com"})
@@ -515,9 +548,6 @@ class TrackAndExpiryTests(TestCase):
         self.assertEqual(fresh.status, "pending")
         self.assertEqual(Order.objects.get(pk=self.order.pk).status, "shipped")
 
-    def test_token_round_trip(self):
-        self.assertEqual(Order.from_token(self.order.token), self.order)
-        self.assertIsNone(Order.from_token(self.order.token + "x"))
 
 
 class AdminTests(TestCase):

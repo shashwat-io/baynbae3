@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 PENDING_ORDER_KEY = "pending_order"
 CHECKOUT_PREFILL_KEY = "checkout_prefill"
+CONFIRMED_ORDERS_KEY = "confirmed_orders"
 
 
 def _flash_notices(request, bag):
@@ -85,7 +86,7 @@ def checkout(request):
             order = _create_order(request, bag, lines, form.cleaned_data)
             if order is None:
                 return redirect("orders:bag")
-            return redirect("orders:pay", token=order.token)
+            return redirect("orders:pay", order_number=order.order_number)
     else:
         form = CheckoutForm(initial=request.session.get(CHECKOUT_PREFILL_KEY, {}))
     return render(request, "orders/checkout.html", {"form": form, "bag": bag, "lines": lines})
@@ -135,18 +136,45 @@ def _create_order(request, bag, lines, data):
     return order
 
 
-def _order_from_token_or_404(token):
-    order = Order.from_token(token)
-    if order is None:
+# Order pages carry the customer's name, address, phone and email, so they are
+# never addressable by anyone who merely knows (or guesses) the order number.
+# A session may see an order it is currently checking out (PENDING_ORDER_KEY)
+# or one it has paid for (CONFIRMED_ORDERS_KEY, PROJECT.md S19).
+def _session_owns(request, order):
+    if request.session.get(PENDING_ORDER_KEY) == order.pk:
+        return True
+    return order.order_number in request.session.get(CONFIRMED_ORDERS_KEY, [])
+
+
+def _session_order_or_404(request, order_number):
+    order = Order.objects.filter(order_number=order_number).first()
+    if order is None or not _session_owns(request, order):
         raise Http404
     return order
 
 
-def pay(request, token):
+def _grant_receipt(request, order):
+    """
+    Record in the session that this browser paid for `order`. Returns True the
+    first time the shopper lands here after paying, so the page can greet them
+    and the bag can be emptied.
+    """
+    confirmed = list(request.session.get(CONFIRMED_ORDERS_KEY, []))
+    if order.order_number not in confirmed:
+        confirmed.append(order.order_number)
+        request.session[CONFIRMED_ORDERS_KEY] = confirmed
+    if request.session.get(PENDING_ORDER_KEY) == order.pk:
+        Bag(request.session).clear()
+        request.session.pop(PENDING_ORDER_KEY, None)
+        return True
+    return False
+
+
+def pay(request, order_number):
     """Order summary plus the form that hands the shopper to Razorpay."""
-    order = _order_from_token_or_404(token)
+    order = _session_order_or_404(request, order_number)
     if order.is_paid:
-        return redirect("orders:confirmation", token=order.token)
+        return redirect("orders:confirmation", order_number=order.order_number)
     if not order.can_retry_payment or not order.razorpay_order_id:
         messages.info(request, "That checkout expired. Your bag is still here — go again.")
         return redirect("orders:bag")
@@ -161,14 +189,14 @@ def pay(request, token):
         if not moved:
             order.refresh_from_db()
             if order.is_paid:
-                return redirect("orders:confirmation", token=order.token)
+                return redirect("orders:confirmation", order_number=order.order_number)
             messages.info(request, "That checkout expired. Your bag is still here — go again.")
             return redirect("orders:bag")
         order.status = Order.Status.PENDING
     callback_url = settings.SITE_URL + reverse("orders:callback")
-    cancel_url = settings.SITE_URL + reverse("orders:cancelled", args=[order.token])
+    cancel_url = settings.SITE_URL + reverse("orders:cancelled", args=[order.order_number])
     if gateway.is_sandbox():
-        action_url = reverse("orders:sandbox_gateway", args=[order.token])
+        action_url = reverse("orders:sandbox_gateway", args=[order.order_number])
     else:
         action_url = gateway.HOSTED_CHECKOUT_URL
     return render(
@@ -205,30 +233,30 @@ def payment_callback(request):
     if not gateway.verify_payment_signature(rp_order_id, payment_id, signature):
         log.warning("Bad payment signature for %s", order.order_number)
         order.mark_payment_failed()
-        return redirect("orders:cancelled", token=order.token)
+        return redirect("orders:cancelled", order_number=order.order_number)
     order.mark_paid(payment_id)
-    return redirect("orders:confirmation", token=order.token)
+    # The shopper's browser follows this redirect as a top-level GET, which
+    # does carry the SameSite=Lax session cookie, so the confirmation view can
+    # recognise the session that started the checkout and grant the receipt.
+    return redirect("orders:confirmation", order_number=order.order_number)
 
 
-def payment_cancelled(request, token):
-    order = _order_from_token_or_404(token)
+def payment_cancelled(request, order_number):
+    order = _session_order_or_404(request, order_number)
     if order.is_paid:
-        return redirect("orders:confirmation", token=order.token)
+        return redirect("orders:confirmation", order_number=order.order_number)
     if order.status == Order.Status.PENDING:
         order.mark_payment_failed()
         order.status = Order.Status.PAYMENT_FAILED
     return render(request, "orders/payment_failed.html", {"order": order})
 
 
-def confirmation(request, token):
-    order = _order_from_token_or_404(token)
+def confirmation(request, order_number):
+    """The receipt. 404 for any session other than the one that paid."""
+    order = _session_order_or_404(request, order_number)
     if not order.is_paid:
-        return redirect("orders:pay", token=order.token)
-    just_paid = False
-    if request.session.get(PENDING_ORDER_KEY) == order.pk:
-        Bag(request.session).clear()
-        request.session.pop(PENDING_ORDER_KEY, None)
-        just_paid = True
+        return redirect("orders:pay", order_number=order.order_number)
+    just_paid = _grant_receipt(request, order)
     return render(
         request,
         "orders/confirmation.html",
@@ -236,11 +264,11 @@ def confirmation(request, token):
     )
 
 
-def sandbox_gateway(request, token):
+def sandbox_gateway(request, order_number):
     """Local stand-in for Razorpay's hosted checkout. Never mounted with real keys."""
     if not gateway.is_sandbox():
         raise Http404
-    order = _order_from_token_or_404(token)
+    order = _session_order_or_404(request, order_number)
     if request.method == "POST" and request.POST.get("outcome") == "success":
         payment_id = gateway.sandbox_payment_id()
         signature = gateway.sign_payment(order.razorpay_order_id, payment_id)
@@ -255,7 +283,7 @@ def sandbox_gateway(request, token):
             },
         )
     if request.method == "POST" and request.POST.get("outcome") == "fail":
-        return redirect("orders:cancelled", token=order.token)
+        return redirect("orders:cancelled", order_number=order.order_number)
     return render(request, "orders/sandbox_gateway.html", {"order": order})
 
 
@@ -293,4 +321,14 @@ def track(request):
         candidate = Order.objects.filter(order_number=form.cleaned_data["order_number"]).first()
         if candidate and (candidate.email.lower() == contact or (digits and candidate.phone.endswith(digits))):
             order = candidate
-    return render(request, "orders/track.html", {"form": form, "order": order, "searched": searched})
+    return render(
+        request,
+        "orders/track.html",
+        {
+            "form": form,
+            "order": order,
+            "searched": searched,
+            # Order pages are session-gated; only offer links this browser can open.
+            "can_open": bool(order and _session_owns(request, order)),
+        },
+    )

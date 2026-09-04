@@ -245,7 +245,7 @@ class ProductionRenderTests(TestCase):
         from orders.models import Order
 
         order = Order.objects.get()
-        self.assert_renders(reverse("orders:pay", args=[order.token]))
+        self.assert_renders(reverse("orders:pay", args=[order.order_number]))
         self.assert_renders(reverse("orders:track"))
         self.assert_renders(reverse("orders:track") + f"?order_number={order.order_number}&contact={ADDRESS['email']}")
 

@@ -33,14 +33,17 @@ flagging, retries, tracking, and the admin. No network calls; the Razorpay SDK i
 
 1. `POST /checkout/` validates the address, creates a `pending` Order with price snapshots, and asks Razorpay for
    an order id (`orders/razorpay_gateway.py`, the only file that knows about paise).
-2. `/checkout/pay/<token>/` shows the summary and a plain HTML form that posts to Razorpay's hosted checkout.
+2. `/checkout/pay/<order-number>/` shows the summary and a plain HTML form that posts to Razorpay's hosted checkout.
+   Order pages are only visible to the session that is checking out; anyone else gets a 404.
    No JavaScript is required anywhere on the site.
 3. Razorpay POSTs back to `/checkout/callback/`. The session cookie is not available cross-site, so the order is
    found by gateway id and verified with the HMAC signature only.
 4. `Order.mark_paid()` moves `pending → paid` exactly once (atomic conditional update) and decrements stock exactly
    once. A stock shortfall never blocks the payment; it lands in `ops_notes` and the admin list flags it.
 5. `/webhooks/razorpay/` handles `payment.captured` as a backstop if the shopper closes the tab. Same idempotent path.
-6. The confirmation page is addressed by a signed token, so it works with or without a session and doubles as the receipt.
+6. The confirmation page is the receipt. On payment the order number is added to the session's `confirmed_orders`
+   list, and `/order/<order-number>/` renders only for a session that holds the number; a guessed number is a 404.
+   Later status checks go through `/track/` with the order number and email.
 
 Unpaid checkouts are marked abandoned by `python manage.py expire_orders` (run from cron).
 

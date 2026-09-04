@@ -40,6 +40,10 @@ SHIPPING = "Free shipping across India on all prepaid orders."
 PLACEHOLDER = '<mark class="todo">[OWNER: {}]</mark>'
 
 
+# Sandbox is pinned exactly as every other checkout test pins it: these tests
+# post a real checkout, and without this a developer's .env keys would send the
+# suite to the live Razorpay API (CLAUDE.md: tests never make network calls).
+@override_settings(RAZORPAY_SANDBOX=True, RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET="")
 class BrandFactTests(TestCase):
     """
     Every brand fact on the site is either a locked owner decision or a visible

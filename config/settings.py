@@ -8,10 +8,17 @@ paise conversion happens only inside orders.razorpay_gateway.
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+
+# Values from .env fill in anything missing or blank in the process environment.
+# (Plain load_dotenv never overrides an existing variable, and the dev server's
+# autoreloader hands its children the parent's environment, so editing .env
+# would otherwise not take effect until a full restart.)
+for _key, _value in dotenv_values(BASE_DIR / ".env").items():
+    if _value is not None and not os.environ.get(_key):
+        os.environ[_key] = _value
 
 
 def env(name, default=None):

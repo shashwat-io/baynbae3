@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load money %}
 {% block title %}Checkout — {{ store.name }}{% endblock %}
 {% block content %}
 <section class="wrap page-head page-head--tight">
@@ -29,7 +29,7 @@
       {% include "partials/field.html" with f=form.state autocomplete="address-level1" %}
       {% include "partials/field.html" with f=form.note %}
     </fieldset>
-    <button class="btn btn--primary btn--lg btn--block" type="submit">Continue to payment — ₹{{ bag.total_inr|intcomma }}</button>
+    <button class="btn btn--primary btn--lg btn--block" type="submit">Continue to payment — {{ bag.total_inr|rupees }}</button>
     <p class="summary__fine">Next step is Razorpay's secure payment window. We never see your card or UPI details.</p>
   </form>
   <aside class="summary summary--checkout">
@@ -39,14 +39,14 @@
       <li>
         {% with img=line.product.primary_image %}{% if img %}<img src="{{ img.url }}" alt="" width="80" height="100">{% endif %}{% endwith %}
         <span><strong>{{ line.product.name }}</strong><br><small>{{ line.variant.size_label }} × {{ line.quantity }}</small></span>
-        <span>₹{{ line.line_total_inr|intcomma }}</span>
+        <span>{{ line.line_total_inr|rupees }}</span>
       </li>
       {% endfor %}
     </ul>
     <dl class="totals">
-      <div><dt>Subtotal</dt><dd>₹{{ bag.subtotal_inr|intcomma }}</dd></div>
-      <div><dt>Shipping</dt><dd>{% if bag.shipping_inr %}₹{{ bag.shipping_inr }}{% else %}Free{% endif %}</dd></div>
-      <div class="totals__total"><dt>Total</dt><dd>₹{{ bag.total_inr|intcomma }}</dd></div>
+      <div><dt>Subtotal</dt><dd>{{ bag.subtotal_inr|rupees }}</dd></div>
+      <div><dt>Shipping</dt><dd>{% if bag.shipping_inr %}{{ bag.shipping_inr|rupees }}{% else %}Free{% endif %}</dd></div>
+      <div class="totals__total"><dt>Total</dt><dd>{{ bag.total_inr|rupees }}</dd></div>
     </dl>
     <a href="{% url 'orders:bag' %}" class="link-arrow">Edit bag</a>
   </aside>

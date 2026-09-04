@@ -15,6 +15,7 @@ from orders.tests import ADDRESS
 
 from .models import Category, Product, ProductImage, Variant
 from .seed_data import CATEGORIES, PRODUCTS
+from .templatetags.money import rupees
 
 # A scratch STATIC_ROOT for the production-mode render tests. Created once per
 # process; the tests below clear it when they finish.
@@ -402,3 +403,32 @@ class CategoryAdminTests(TestCase):
         r = self.client.post("/admin/catalog/category/add/", {"name": "Other", "slug": "kaftans", "sort_order": 0})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(Category.objects.filter(slug="kaftans").count(), 1)
+
+
+# ---------------------------------------------------------------- 7d: Indian digit grouping
+class RupeesFilterTests(TestCase):
+    def test_indian_grouping(self):
+        for amount, expected in ((0, "₹ 0"), (999, "₹ 999"), (1000, "₹ 1,000"), (12500, "₹ 12,500"), (125000, "₹ 1,25,000"), (1234567, "₹ 12,34,567")):
+            with self.subTest(amount=amount):
+                self.assertEqual(rupees(amount), expected)
+        self.assertEqual(rupees("2400"), "₹ 2,400")
+        self.assertEqual(rupees(-1500), "-₹ 1,500")
+        self.assertEqual(rupees("free"), "free")
+        self.assertIsNone(rupees(None))
+
+    def test_every_price_on_the_storefront_uses_the_filter(self):
+        p = make("big-ticket", price=125000, sizes={"S": 2})
+        r = self.client.get(p.get_absolute_url())
+        self.assertContains(r, "₹ 1,25,000")
+        self.assertNotContains(r, "125,000")
+        self.client.post(reverse("orders:bag_add"), {"variant": p.variants.get().pk})
+        for name in ("catalog:shop", "orders:bag", "orders:checkout"):
+            with self.subTest(page=name):
+                r = self.client.get(reverse(name))
+                self.assertContains(r, "₹ 1,25,000")
+                self.assertNotContains(r, "125,000")
+        # humanize is gone for good
+        self.assertNotIn("django.contrib.humanize", settings.INSTALLED_APPS)
+        for path in (settings.BASE_DIR / "templates").rglob("*.html"):
+            self.assertNotIn("intcomma", path.read_text(), path)
+            self.assertNotIn("humanize", path.read_text(), path)

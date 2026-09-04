@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load money %}
 {% block title %}Your bag — {{ store.name }}{% endblock %}
 {% block content %}
 <section class="wrap page-head page-head--tight">
@@ -17,9 +17,9 @@
       <div class="line__body">
         <div class="line__row">
           <h2 class="line__name"><a href="{{ line.product.get_absolute_url }}">{{ line.product.name }}</a></h2>
-          <span class="line__price">₹{{ line.line_total_inr|intcomma }}</span>
+          <span class="line__price">{{ line.line_total_inr|rupees }}</span>
         </div>
-        <p class="line__meta">{{ line.variant.size_label }} · {{ line.product.print_name }}{% if line.quantity > 1 %} · ₹{{ line.unit_price_inr|intcomma }} each{% endif %}</p>
+        <p class="line__meta">{{ line.variant.size_label }} · {{ line.product.print_name }}{% if line.quantity > 1 %} · {{ line.unit_price_inr|rupees }} each{% endif %}</p>
         <div class="line__controls">
           <form method="post" action="{% url 'orders:bag_update' %}" class="qty">
             {% csrf_token %}
@@ -42,9 +42,9 @@
   <aside class="summary">
     <h2 class="display display--sm">Summary</h2>
     <dl class="totals">
-      <div><dt>Subtotal</dt><dd>₹{{ bag.subtotal_inr|intcomma }}</dd></div>
-      <div><dt>Shipping</dt><dd>{% if bag.shipping_inr %}₹{{ bag.shipping_inr }}{% else %}Free{% endif %}</dd></div>
-      <div class="totals__total"><dt>Total</dt><dd>₹{{ bag.total_inr|intcomma }}</dd></div>
+      <div><dt>Subtotal</dt><dd>{{ bag.subtotal_inr|rupees }}</dd></div>
+      <div><dt>Shipping</dt><dd>{% if bag.shipping_inr %}{{ bag.shipping_inr|rupees }}{% else %}Free{% endif %}</dd></div>
+      <div class="totals__total"><dt>Total</dt><dd>{{ bag.total_inr|rupees }}</dd></div>
     </dl>
     <p class="summary__nudge summary__nudge--good">Shipping's on us, anywhere in India.</p>
     <a href="{% url 'orders:checkout' %}" class="btn btn--primary btn--lg btn--block">Checkout</a>

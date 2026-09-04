@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load money %}
 {% block title %}{% if category %}{{ category.name }}{% else %}Shop all{% endif %} — {{ store.name }}{% endblock %}
 {% block meta_description %}{% if category %}{{ category.blurb }}{% else %}Every kaftan, cover-up, dress, co-ord and shorts set we have live right now. Small batches, ₹1,000–5,000.{% endif %}{% endblock %}
 {% block content %}

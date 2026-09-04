@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load money %}
 {% block title %}Order {{ order.order_number }} — {{ store.name }}{% endblock %}
 {% block content %}
 <section class="wrap page-head confirm-head">
@@ -37,14 +37,14 @@
       <li>
         {% if item.image_url %}<img src="{{ item.image_url }}" alt="" width="80" height="100">{% endif %}
         <span><strong>{{ item.product_name }}</strong><br><small>{{ item.size_label }} × {{ item.quantity }}</small></span>
-        <span>₹{{ item.line_total_inr|intcomma }}</span>
+        <span>{{ item.line_total_inr|rupees }}</span>
       </li>
       {% endfor %}
     </ul>
     <dl class="totals">
-      <div><dt>Subtotal</dt><dd>₹{{ order.subtotal_inr|intcomma }}</dd></div>
-      <div><dt>Shipping</dt><dd>{% if order.shipping_inr %}₹{{ order.shipping_inr }}{% else %}Free{% endif %}</dd></div>
-      <div class="totals__total"><dt>Paid</dt><dd>₹{{ order.total_inr|intcomma }}</dd></div>
+      <div><dt>Subtotal</dt><dd>{{ order.subtotal_inr|rupees }}</dd></div>
+      <div><dt>Shipping</dt><dd>{% if order.shipping_inr %}{{ order.shipping_inr|rupees }}{% else %}Free{% endif %}</dd></div>
+      <div class="totals__total"><dt>Paid</dt><dd>{{ order.total_inr|rupees }}</dd></div>
     </dl>
     <p class="summary__fine">Payment ref {{ order.razorpay_payment_id }}</p>
     <a href="{% url 'catalog:shop' %}" class="btn btn--ghost btn--block">Back to the shop</a>

@@ -41,10 +41,7 @@ class CategorySitemap(Sitemap):
     priority = 0.6
 
     def items(self):
-        return Category.all()
-
-    def location(self, item):
-        return item.url
+        return Category.objects.live()
 
 
 sitemaps = {"products": ProductSitemap, "categories": CategorySitemap, "pages": StaticSitemap}

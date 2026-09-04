@@ -54,7 +54,7 @@ Unpaid checkouts are marked abandoned by `python manage.py expire_orders` (run f
 ## Layout
 
 ```
-catalog/   products, per-size variants, images, seed catalogue (seed_data.py, manage.py seed_catalog)
+catalog/   categories (admin-managed), products, per-size variants, images, seed catalogue (seed_data.py, manage.py seed_catalog)
 orders/    session bag, checkout, Razorpay gateway, verify endpoint/webhook, tracking, admin
 support/   contact form → SupportTicket, FAQ, policy pages
 templates/ server-rendered pages; static/css/site.css is the whole stylesheet

@@ -1,6 +1,4 @@
 from django.contrib.staticfiles import finders
-from django.db.models import Prefetch
-from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.templatetags.static import static
 
@@ -15,7 +13,7 @@ SORTS = {
 
 
 def live_products():
-    return Product.objects.live().prefetch_related("variants", "images")
+    return Product.objects.live().select_related("category").prefetch_related("variants", "images")
 
 
 INSTAGRAM_TILE_COUNT = 6
@@ -42,7 +40,8 @@ def home(request):
     featured = [p for p in products if p.is_featured][:4]
     if len(featured) < 4:
         featured += [p for p in products if p not in featured][: 4 - len(featured)]
-    kaftans = [p for p in products if p.category == "kaftans"][:3]
+    kaftan_category = Category.objects.filter(slug="kaftans").first()
+    kaftans = [p for p in products if p.category == kaftan_category][:3] if kaftan_category else []
     new_in = [p for p in products if p not in featured and p not in kaftans][:4] or products[:4]
     return render(
         request,
@@ -51,7 +50,8 @@ def home(request):
             "featured": featured,
             "new_in": new_in,
             "kaftans": kaftans,
-            "categories": Category.all(),
+            "kaftan_category": kaftan_category,
+            "categories": Category.objects.live(),
             "product_count": len(products),
             "ig_tiles": instagram_tiles(),
         },
@@ -59,17 +59,13 @@ def home(request):
 
 
 def shop(request, category=None):
-    cat = None
-    if category:
-        cat = Category.get(category)
-        if cat is None:
-            raise Http404
+    cat = get_object_or_404(Category, slug=category) if category else None
     sort = request.GET.get("sort", "new")
     if sort not in SORTS:
         sort = "new"
     qs = live_products().order_by(*SORTS[sort][1])
     if cat:
-        qs = qs.filter(category=cat.slug)
+        qs = qs.filter(category=cat)
     products = list(qs)
     if request.GET.get("size"):
         size = request.GET["size"]
@@ -79,7 +75,7 @@ def shop(request, category=None):
         "catalog/shop.html",
         {
             "category": cat,
-            "categories": Category.all(),
+            "categories": Category.objects.live(),
             "products": products,
             "sort": sort,
             "sorts": [(k, v[0]) for k, v in SORTS.items()],

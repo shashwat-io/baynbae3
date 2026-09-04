@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from catalog.models import Product, ProductImage, Variant
-from catalog.seed_data import CARE_DEFAULT, IMAGE_ALTS, PRODUCTS
+from catalog.models import Category, Product, ProductImage, Variant
+from catalog.seed_data import CARE_DEFAULT, CATEGORIES, IMAGE_ALTS, PRODUCTS
 
 
 class Command(BaseCommand):
@@ -14,11 +14,17 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         created_n = updated_n = 0
+        categories = {}
+        for order, cat in enumerate(CATEGORIES):
+            categories[cat["slug"]], _ = Category.objects.update_or_create(
+                slug=cat["slug"], defaults={**{k: v for k, v in cat.items() if k != "slug"}, "sort_order": order}
+            )
         for data in PRODUCTS:
             fields = {
                 k: data[k]
-                for k in ("name", "category", "price_inr", "tagline", "description", "print_name", "colourway", "fabric", "fit_note", "model_note", "batch_size", "sort_weight")
+                for k in ("name", "price_inr", "tagline", "description", "print_name", "colourway", "fabric", "fit_note", "model_note", "batch_size", "sort_weight")
             }
+            fields["category"] = categories[data["category"]]
             fields["care"] = data.get("care", CARE_DEFAULT)
             fields["is_live"] = True
             fields["is_featured"] = data.get("featured", False)

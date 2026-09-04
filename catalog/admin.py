@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django.db.models import Sum
+from django.db.models import Count, Q, Sum
 
-from .models import Product, ProductImage, Variant
+from .models import Category, Product, ProductImage, Variant
 
 
 class VariantInline(admin.TabularInline):
@@ -14,6 +14,23 @@ class ProductImageInline(admin.TabularInline):
     model = ProductImage
     extra = 0
     fields = ("filename", "alt", "sort_order")
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    """Add a row here and it appears in the nav as soon as it has a live product."""
+
+    list_display = ("name", "slug", "sort_order", "live_products")
+    list_editable = ("sort_order",)
+    prepopulated_fields = {"slug": ("name",)}
+    ordering = ("sort_order", "name")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_live=Count("products", filter=Q(products__is_live=True)))
+
+    @admin.display(description="live products", ordering="_live")
+    def live_products(self, obj):
+        return obj._live
 
 
 @admin.register(Product)

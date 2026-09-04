@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.templatetags.static import static
@@ -8,72 +6,45 @@ from django.urls import reverse
 from .sizes import SIZE_CHOICES, SIZE_ORDER, size_label
 
 
-@dataclass(frozen=True)
-class Category:
-    slug: str
-    name: str
-    short: str
-    blurb: str
-    image: str
+class CategoryQuerySet(models.QuerySet):
+    def live(self):
+        """Categories that have at least one live product — the only ones worth a nav link."""
+        return self.filter(products__is_live=True).distinct()
 
-    @property
-    def url(self):
+
+class Category(models.Model):
+    """Managed in the admin. Adding one here puts it in the nav, the shop chips and the sitemap."""
+
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=120, unique=True)
+    sort_order = models.PositiveIntegerField(default=0, help_text="Lower comes first in the nav.")
+    short = models.CharField(max_length=40, blank=True, help_text='Singular, for product cards: "Kaftan".')
+    blurb = models.CharField(max_length=200, blank=True, help_text="One line under the heading on the shop page.")
+    image = models.CharField(max_length=120, blank=True, help_text="File in static/img/editorial/, for the home-page tile.")
+
+    objects = CategoryQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name_plural = "categories"
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
         return reverse("catalog:shop_category", args=[self.slug])
 
     @property
+    def url(self):
+        return self.get_absolute_url()
+
+    @property
     def image_url(self):
-        return static(f"img/editorial/{self.image}")
+        return static(f"img/editorial/{self.image}") if self.image else ""
 
-    @classmethod
-    def all(cls):
-        return list(CATEGORIES.values())
-
-    @classmethod
-    def get(cls, slug):
-        return CATEGORIES.get(slug)
-
-
-CATEGORIES = {
-    c.slug: c
-    for c in [
-        Category(
-            "kaftans",
-            "Kaftans",
-            "Kaftan",
-            "One size, zero effort. Throw it on over anything, or nothing.",
-            "cat-kaftans.svg",
-        ),
-        Category(
-            "cover-ups",
-            "Cover-ups",
-            "Cover-up",
-            "Sheer, breezy, and doing the absolute minimum amount of covering.",
-            "cat-cover-ups.svg",
-        ),
-        Category(
-            "dresses",
-            "Resort dresses",
-            "Dress",
-            "From breakfast buffet to sunset bar without a costume change.",
-            "cat-dresses.svg",
-        ),
-        Category(
-            "co-ord-sets",
-            "Co-ord sets",
-            "Co-ord",
-            "Two pieces, one decision. Wear them together, or split them up.",
-            "cat-co-ord-sets.svg",
-        ),
-        Category(
-            "shorts-sets",
-            "Shorts sets",
-            "Shorts set",
-            "Shirt and shorts that look like you planned it. You didn't.",
-            "cat-shorts-sets.svg",
-        ),
-    ]
-}
-CATEGORY_CHOICES = [(c.slug, c.name) for c in CATEGORIES.values()]
+    @property
+    def short_name(self):
+        return self.short or self.name
 
 
 class ProductQuerySet(models.QuerySet):
@@ -87,7 +58,7 @@ class ProductQuerySet(models.QuerySet):
 class Product(models.Model):
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True)
-    category = models.CharField(max_length=32, choices=CATEGORY_CHOICES)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     price_inr = models.PositiveIntegerField(
         "price (₹)", validators=[MinValueValidator(1)], help_text="Whole rupees."
     )
@@ -116,10 +87,6 @@ class Product(models.Model):
 
     def get_absolute_url(self):
         return reverse("catalog:product", args=[self.slug])
-
-    @property
-    def category_obj(self):
-        return Category.get(self.category)
 
     # -- stock -----------------------------------------------------------
     def sized_variants(self):

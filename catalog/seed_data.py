@@ -3,6 +3,16 @@ Launch catalogue. Loaded by `manage.py seed_catalog`.
 Image filenames follow tools/render_imagery.py: <slug>-1/2/3.svg.
 """
 
+# The launch categories. The migration that introduced the Category model
+# creates the same five; seed_catalog keeps their copy and images current.
+CATEGORIES = [
+    {"slug": "kaftans", "name": "Kaftans", "short": "Kaftan", "blurb": "One size, zero effort. Throw it on over anything, or nothing.", "image": "cat-kaftans.svg"},
+    {"slug": "cover-ups", "name": "Cover-ups", "short": "Cover-up", "blurb": "Sheer, breezy, and doing the absolute minimum amount of covering.", "image": "cat-cover-ups.svg"},
+    {"slug": "dresses", "name": "Resort dresses", "short": "Dress", "blurb": "From breakfast buffet to sunset bar without a costume change.", "image": "cat-dresses.svg"},
+    {"slug": "co-ord-sets", "name": "Co-ord sets", "short": "Co-ord", "blurb": "Two pieces, one decision. Wear them together, or split them up.", "image": "cat-co-ord-sets.svg"},
+    {"slug": "shorts-sets", "name": "Shorts sets", "short": "Shorts set", "blurb": "Shirt and shorts that look like you planned it. You didn't.", "image": "cat-shorts-sets.svg"},
+]
+
 FITTED = {"XS": 2, "S": 4, "M": 4, "L": 3, "XL": 2}
 ONE_SIZE = {"FREE": 14}
 

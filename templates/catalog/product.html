@@ -27,7 +27,7 @@
   </div>
 
   <div class="pdp__info">
-    <p class="eyebrow"><a href="{% url 'catalog:shop' %}">Shop</a> / <a href="{{ product.category_obj.url }}">{{ product.category_obj.name }}</a></p>
+    <p class="eyebrow"><a href="{% url 'catalog:shop' %}">Shop</a> / <a href="{{ product.category.url }}">{{ product.category.name }}</a></p>
     <h1 class="display display--lg pdp__name">{{ product.name }}</h1>
     <p class="pdp__tagline">{{ product.tagline }}</p>
     <p class="pdp__price">₹{{ product.price_inr|intcomma }} <span class="pdp__tax">incl. taxes</span></p>
@@ -95,7 +95,7 @@
 <section class="wrap section">
   <div class="section-head">
     <h2 class="display display--md">Goes with</h2>
-    <a href="{{ product.category_obj.url }}" class="link-arrow">More {{ product.category_obj.name|lower }}</a>
+    <a href="{{ product.category.url }}" class="link-arrow">More {{ product.category.name|lower }}</a>
   </div>
   <div class="grid grid--products">
     {% for product in related %}{% include "partials/product_card.html" %}{% endfor %}

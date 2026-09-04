@@ -19,7 +19,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from catalog.models import Product, ProductImage, Variant
+from catalog.models import Category, Product, ProductImage, Variant
 
 from . import razorpay_gateway as gateway
 from .cart import MAX_PER_LINE, SESSION_KEY, Bag
@@ -40,10 +40,11 @@ ADDRESS = {
 
 
 def make_product(slug="tester", price=2499, sizes=None, live=True):
+    category, _ = Category.objects.get_or_create(slug="dresses", defaults={"name": "Resort dresses", "short": "Dress"})
     product = Product.objects.create(
         name=slug.replace("-", " ").title(),
         slug=slug,
-        category="dresses",
+        category=category,
         price_inr=price,
         tagline="t",
         description="d",

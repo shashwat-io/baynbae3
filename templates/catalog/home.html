@@ -9,7 +9,7 @@
     <p class="lede reveal reveal--2">Kaftans, cover-ups, dresses and sets for the trip you're already planning. Comfortable. Classy. A little mischievous. Cut in batches of ten to twenty, so nobody at the resort is wearing yours.</p>
     <div class="hero__cta reveal reveal--3">
       <a href="{% url 'catalog:shop' %}" class="btn btn--primary btn--lg">Shop the drop</a>
-      <a href="{% url 'catalog:shop_category' 'kaftans' %}" class="btn btn--ghost btn--lg">Start with a kaftan</a>
+      {% if kaftan_category %}<a href="{{ kaftan_category.url }}" class="btn btn--ghost btn--lg">Start with a kaftan</a>{% endif %}
     </div>
     <p class="hero__note reveal reveal--3">₹1,000–5,000 · Free shipping across India · {{ product_count }} styles live right now</p>
   </div>
@@ -27,7 +27,7 @@
   <div class="cat-rail" role="list">
     {% for c in categories %}
     <a href="{{ c.url }}" class="cat-tile" role="listitem">
-      <img src="{{ c.image_url }}" alt="" width="800" height="1000" loading="lazy">
+      {% if c.image_url %}<img src="{{ c.image_url }}" alt="" width="800" height="1000" loading="lazy">{% endif %}
       <span class="cat-tile__name">{{ c.name }}</span>
     </a>
     {% endfor %}
